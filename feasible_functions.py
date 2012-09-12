@@ -792,35 +792,6 @@ def plot_obs_exp_evenness(datasets):
         print 'r-squared for obs-v-pred Evar:',r2,r_value**2
         plt.scatter(EXP_evar, OBS_evar, c='r',marker='o',lw=0,s=10,alpha=0.4)
               
-        #r2 = macroecotools.obs_pred_rsquare(np.array(OBS_BP),np.array(EXP_BP)) # r-squared for the 1:1 line (obs vs. exp)
-        #slope,intercept,r_value,p_value,std_err = stats.linregress(EXP_BP,OBS_BP)
-        #print 'r-squared for obs-v-pred Berger-Parker:',r2,r_value**2
-        #plt.scatter(EXP_BP, OBS_BP, c='0.5',marker='o',lw=0,alpha= 0.4)
-        
-        #r2 = macroecotools.obs_pred_rsquare(np.array(OBS_H),np.array(EXP_H)) # r-squared for the 1:1 line (obs vs. exp)
-        #slope,intercept,r_value,p_value,std_err = stats.linregress(EXP_H,OBS_H)
-        #print 'r-squared for obs-v-pred Heips:',r2,r_value**2
-        #plt.scatter(EXP_H, OBS_H, c='g',marker='o',lw=0,alpha= 0.4)
-        
-        #r2 = macroecotools.obs_pred_rsquare(np.array(OBS_EQ),np.array(EXP_EQ)) # r-squared for the 1:1 line (obs vs. exp)
-        #slope,intercept,r_value,p_value,std_err = stats.linregress(EXP_EQ,OBS_EQ)
-        #print 'r-squared for obs-v-pred EQ:',r2,r_value**2
-        #plt.scatter(EXP_EQ, OBS_EQ, c='b',marker='o',lw=0,s=10,alpha=0.3)
-        
-        #r2 = macroecotools.obs_pred_rsquare(np.array(OBS_EC),np.array(EXP_EC)) # r-squared for the 1:1 line (obs vs. exp)
-        #slope,intercept,r_value,p_value,std_err = stats.linregress(EXP_EC,OBS_EC)
-        #print 'r-squared for obs-v-pred Camargos evenness:',r2,r_value**2
-        #plt.scatter(EXP_EC, OBS_EC, c='0.5',marker='o',lw=0,alpha= 0.4)
-        
-        #r2 = macroecotools.obs_pred_rsquare(np.array(OBS_J),np.array(EXP_J)) # r-squared for the 1:1 line (obs vs. exp)
-        #slope,intercept,r_value,p_value,std_err = stats.linregress(EXP_J,OBS_J)
-        #print 'r-squared for obs-v-pred Pielous evenness:',r2,r_value**2
-        #plt.scatter(EXP_J, OBS_J, c='0.5',marker='o',lw=0,alpha= 0.4)
-        
-        #r2 = macroecotools.obs_pred_rsquare(np.array(OBS_M),np.array(EXP_M)) # r-squared for the 1:1 line (obs vs. exp)
-        #slope,intercept,r_value,p_value,std_err = stats.linregress(EXP_M,OBS_M)
-        #print 'r-squared for obs-v-pred McIntosh evenness:',r2,r_value**2
-        #plt.scatter(EXP_M, OBS_M, c='b',marker='o',lw=0,alpha= 0.4)
         
         r2 = macroecotools.obs_pred_rsquare(np.array(OBS_NHC),np.array(EXP_NHC)) # r-squared for the 1:1 line (obs vs. exp)
         slope,intercept,r_value,p_value,std_err = stats.linregress(EXP_NHC,OBS_NHC)
@@ -844,9 +815,6 @@ def plot_obs_exp_evenness(datasets):
         plt.ylim(axis_min,axis_max)
         plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
         plt.scatter(EXP_NHC, OBS_NHC, c='0.25',marker='o',lw=0,s=10,alpha=0.3)
-        ##ticks = np.arange(axis_min,axis_max, abs(axis_max-axis_min)/3.0)
-        ##ticks = np.round_(ticks,decimals=2)
-        ##plt.tick_params(axis='both', which='major', labelsize=8)
         plt.setp(axins, xticks=[], yticks=[])
         
         i+=1
@@ -908,14 +876,10 @@ def plot_percentile(datasets):
         
         slope,intercept,r_value,p_value,std_err = stats.linregress(x_list_EQ,y_list_EQ)
         print 'percentile EQ: r-value:',r_value,'p-value:',p_value,'slope:',slope,' r-squared:',r_value**2
-        #m,b = np.polyfit(x_list_EQ,y_list_EQ,1)
-        #plt.plot(x_list_EQ, np.array(x_list_EQ)*m +b, c='b',lw=3) 
         plt.scatter(x_list_EQ,y_list_EQ,c='b',marker='o',s=10,lw=0,alpha=0.3)
         
         slope,intercept,r_value,p_value,std_err = stats.linregress(x_list_evar,y_list_evar)
         print 'obs-pred Evar: r-value:',r_value,'p-value:',p_value,'slope:',slope,' r-squared:',r_value**2
-        #m,b = np.polyfit(x_list_evar,y_list_evar,1)
-        #plt.plot(x_list_evar, np.array(x_list_evar)*m +b, c='r',lw=3) 
         plt.scatter(x_list_evar,y_list_evar,c='r',marker='o',s=10,lw=0,alpha=0.3)       
         
         plt.xlim(0,1)
@@ -1119,12 +1083,6 @@ def pairwise_r2_obs_feasible(datasets):
                         macro = eval(macro)
                         r2 = macroecotools.obs_pred_rsquare(np.log10(SAD),np.log10(macro)) # r-squared for the 1:1 line (obs vs. exp) 
                         r2s.append(r2)
-                        #obsEvar = e_var(SAD)
-                        #expEvar = e_var(macro)
-                        #percent_err = 100*(abs(obsEvar - expEvar)/obsEvar) 
-                        #perc_errs.append(percent_err)
-                        #if len(perc_errs) >= 10:break
-                    #P_errs.append(perc_errs)    
                     density = gaussian_kde(r2s)
                     n = len(r2s)
                     xs = np.linspace(0.0,1.0,n)
