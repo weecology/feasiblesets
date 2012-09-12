@@ -17,7 +17,16 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-This repository contains Python and Cython code and data used by Locey and White in their recent paper.
+Contact information
+-------------------
+Ken Locey's email: ken@weecology.org and locey@biology.usu.edu
+
+*Go to [Ken's website](kenlocey.wordpress.com)*
+
+Brief description
+-----------------
+This repository contains Python code and data used by Ken Locey and Ethan White to examine distributions of species abundance among microbial and macrobial communities.
+
 
 Included files
 -------------------------
@@ -27,9 +36,7 @@ Included files
 * A dictionary of random macrostates (coming). This would be expensive for others to reproduce.
 * A documentation file to describe what all this feasible set nonsense is for
 
-Ken Locey's email addies: ken@weecology.org and locey@biology.usu.edu
 
-Ken's personal-professional website: *kenlocey.wordpress.com*
 
 Programs and packages used by the authors
 -------------------------------
