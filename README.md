@@ -23,11 +23,6 @@ Ken Locey's email: ken@weecology.org and locey@biology.usu.edu
 
 *Go to [Ken's website](kenlocey.wordpress.com)*
 
-Brief description
------------------
-This repository contains Python code and data used by Ken Locey and Ethan White to examine distributions of species abundance among microbial and macrobial communities.
-
-
 Included files
 -------------------------
 
