@@ -750,12 +750,6 @@ def plot_obs_exp_evenness(datasets):
                         macros = random.sample(macros,50)
                     OBS_evar.append(e_var(SAD))
                     OBS_E.append(simpsons_evenness(SAD))
-                    #OBS_BP.append(berger_parker(SAD))
-                    #OBS_H.append(Heips_evenness(SAD))
-                    #OBS_EQ.append(EQ_evenness(SAD))
-                    #OBS_EC.append(camargos_evenness(SAD))
-                    #OBS_J.append(pielous_evenness(SAD))
-                    #OBS_M.append(Mcintosh_evenness(SAD))
                     OBS_NHC.append(NHC_evenness(SAD))
                     
                     macrostates = []
@@ -768,12 +762,6 @@ def plot_obs_exp_evenness(datasets):
                     
                     EXP_evar.append(e_var(expSAD))
                     EXP_E.append(simpsons_evenness(expSAD))
-                    #EXP_BP.append(berger_parker(expSAD)) 
-                    #EXP_H.append(Heips_evenness(expSAD))
-                    #EXP_EQ.append(EQ_evenness(expSAD))
-                    #EXP_EC.append(camargos_evenness(expSAD))
-                    #EXP_J.append(pielous_evenness(expSAD))
-                    #EXP_M.append(Mcintosh_evenness(expSAD))
                     EXP_NHC.append(NHC_evenness(expSAD))
                     
                     data.close()
