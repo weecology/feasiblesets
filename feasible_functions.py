@@ -1,5 +1,7 @@
 #!/usr/bin/env sage -python
 
+# This script needs a liberal dose of appropriate comments
+
 from sage.all import *
 import csv
 import sys
