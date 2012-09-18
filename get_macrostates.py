@@ -22,14 +22,15 @@ import re
 	    site2, K flavescens, 12 
     Uncomment function calls and print statements to execute."""
 
-#datasets = ['BBS','CBC','FIA','GENTRY','MCDB','NABC','TERA','AQUA','FUNGI']
-#datasets = ['COAL_PROD','COAL_CONS','COAL_EMIT','OIL_PROD','OIL_CONS','OIL_EMIT','NGAS_PROD','NGAS_CONS','NGAS_EMIT']
-datasets = ['WHEAT_PROD','WHEAT_SUP','WHEAT_WAST','RICE_PROD','RICE_SUP','RICE_WAST','CORN_PROD','CORN_SUP','CORN_WAST']
-#datasets = ['OIL_PROD','OIL_CONS','OIL_EMIT']
+datasets = ['BBS','CBC','FIA','GENTRY','MCDB','NABC','TERA','AQUA','FUNGI']
+
 ff.get_macrostates(datasets) 
 """ The above function finds random macrostates with the same combinations of N and S as found in datasets.
     The user should check the get_macrostates function in the module feasible_functions to ensure that the 
     desired number of random macrostates, along with other variables, is chosen. """ 
+
+""" The function calls below generate the figures seen in our current manuscript, to be submitted very soon.
+    Uncomment to use."""
 
 # Figure 1
 #ff.get_all_SADs(50,10)
