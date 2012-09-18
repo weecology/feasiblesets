@@ -133,7 +133,7 @@ def samp_part(N, S):
     for p in part:SAD.append(int(p))
     return SAD
 
-#############################################################################################################################################
+
 
 def get_modal(_list):
     """ Finds the kernel density function across a sample """
@@ -152,7 +152,7 @@ def get_modal(_list):
         d += 1
     return exp_mode
 
-
+######   A Section of evenness indices and related functions ###########################################
 def Mcintosh_evenness(SAD):
     S = len(SAD)
     N = sum(SAD)
@@ -314,7 +314,8 @@ def feasible_set_Evar(N,S):
     return Evars 
 ########################################################################################################
 
-def random_parts(N,S,size):
+
+def random_parts(N,S,size): # A newly discovered method for generating random samples of feasible sets
     
     SADs = []
     while len(SADs) < size:
