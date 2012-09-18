@@ -1,11 +1,9 @@
 #!/usr/bin/env sage -python
 
-# This script needs a liberal dose of appropriate comments
-
 from sage.all import *
 import csv
 import sys
-sys.path.append("/home/kenlocey/pymods")
+sys.path.append("/home/kenlocey/modules/pymods")
 import macroecotools
 import os
 from os import path, access, R_OK  # W_OK for write permission
@@ -23,6 +21,119 @@ import itertools
 from operator import itemgetter
 from decimal import *
 
+
+
+
+def simplest_gini(x): #x is a vector of integers  This script was obtained from: https://subversion.american.edu/aisaac/notes/blinder_slides.xhtml
+  #initialize yn and ysum
+  yn, ysum, countx = 0.0, 0.0, 0
+  #compute yN and ysum
+  for xn in sorted(x):
+    yn = (yn + xn)
+    ysum = (ysum + yn)
+    countx = (countx + 1)
+  #compute area below Lorenz curve
+  B = ysum / (countx * yn)
+  return(1 - 2*B)
+  
+  
+def psi_dist(abund, N, S, set=None):
+    '''
+    Calculate the probability of finding 0 to S species with given abundance.
+
+    Parameters
+    ----------
+    abund : int
+        Abundance at which to calculate distribution, from 0 to N (technically 
+        can only be >0 up to N - S - 1).
+    N : int
+        Number of total individuals in community
+    S : int
+        Number of species in community
+    set : int
+        Optional set of allowable parts in partition
+
+    Returns
+    -------
+    psi : ndarray
+        Array giving probability of i species, from 0 to S, with abundance 
+        abund.
+    '''
+
+    tol = 1e-6  # Tolerance for ending loop
+
+    if set == None:
+        parts = number_of_partitions(N, S)
+    else:
+        parts = number_of_partitions_restricted(N, set, S)
+
+    psi_cum = np.zeros(S+2)
+
+    for i in xrange(0, S+2):
+
+        if N - abund*i < 0 or S - i < 0:
+            break
+        else:
+            if set == None:
+                psi_cum[i] = number_of_partitions(N-abund*i, S-i) / parts
+            else:
+                psi_cum[i] = number_of_partitions_restricted(N-abund*i, set, 
+                                                             k=S-i) / parts
+
+        if psi_cum[i] < tol:  # If low probability of higher abunds
+            break
+
+    return psi_cum[:-1] - psi_cum[1:]
+    
+    
+def samp_part(N, S):
+    '''
+    Get uniform random sample of integer partitions of N with length S.
+
+    Parameters
+    ----------
+    N : int
+        Number of total individuals in community
+    S : int
+        Number of species in community
+
+    Returns
+    -------
+    part : ndarray
+        Random partition of length S.
+    '''
+
+    N_run = N
+    S_run = S
+
+    part = np.zeros(S)
+    pind = 0
+
+    for abund in xrange(1, N+1):  # Start at lowest abund = 1
+
+        # Calculate psi for this abund, with only addends >= abund allowed
+        psi = psi_dist(abund, N_run, S_run, set=range(abund, N+1))
+        cum_psi = np.cumsum(psi)
+
+        # Choose num spp w/ this abund
+        num_choice = np.argmax(cum_psi > np.random.random())
+        part[pind:(pind+num_choice)] = abund
+
+        # Increment counters
+        pind += num_choice
+        N_run -= num_choice * abund
+        S_run -= num_choice
+
+        if S_run == 0:  # If have chosen abund for all species
+            break
+            
+    part = part.tolist()    
+    part.reverse()
+    SAD = []
+    for p in part:SAD.append(int(p))
+    return SAD
+
+#############################################################################################################################################
 
 def get_modal(_list):
     """ Finds the kernel density function across a sample """
@@ -201,7 +312,40 @@ def feasible_set_Evar(N,S):
         Evar = e_var(sad)
         Evars.append(Evar)
     return Evars 
+########################################################################################################
 
+def random_parts(N,S,size):
+    
+    SADs = []
+    while len(SADs) < size:
+        SAD = list(Partitions(N).random_element())
+        
+        while len(SAD) != S:
+            if len(SAD) == 1:break
+            SAD = list(Partition(SAD).conjugate())
+            if len(SAD) == S or len(SAD) < 3:break
+            r1 = choice(list(set(SAD)))
+            SAD.remove(r1)            
+            r2 = choice(SAD)
+            SAD.remove(r2)
+            SAD = list(Partition(SAD).conjugate()) # get the conjugate before appending
+            SAD.append(r1+r2)
+            SAD.sort()
+            SAD.reverse()
+            if len(SAD) < 3:break
+                
+        if len(SAD)==S:
+            SADs.append(SAD)
+            
+            
+    SADs = [list(x) for x in set(tuple(x) for x in SADs)]
+    return SADs
+    
+def worker2(NS_combo):
+    """thread worker function"""
+    set_random_seed()
+    random_macros = random_parts(NS_combo[0],NS_combo[1],63)
+    return random_macros    
 
 def get_random_macrostates(NS_combo):    
     N = int(NS_combo[0])
@@ -213,18 +357,19 @@ def get_random_macrostates(NS_combo):
         if len(macro) == S:
             rand_macros.append(macro)
         ct+=1            
+    rand_macros = [list(x) for x in set(tuple(x) for x in rand_macros)]
     return rand_macros
-    
-def worker(NS_combo):
+
+def worker1(NS_combo):
     """thread worker function"""
     set_random_seed()
     random_macros = get_random_macrostates(NS_combo)
     return random_macros
-
+    
 def get_rand_sample(NS_combo):
     unique_SADs = []
     pool = Pool()
-    unique_SADs = pool.map(worker, [NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo])
+    unique_SADs = pool.map(worker2, [NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo])
     pool.close()
     pool.join()
     return unique_SADs
@@ -234,15 +379,13 @@ def get_macrostates(datasets):
     for dataset in datasets:
         # To prevent the script from tripping on the last line, make the following the last line of the datafile: XXX 111     
         DATA = open('/home/kenlocey/' + dataset + '/' + dataset + '-data.txt','r')
-        ct1 = 0
-        ct2 = 0
+        ct = 0
         d = DATA.readline()
         m0 = re.match(r'\A\S*',d).group()
         m2 = int(re.findall(r'\d*\S$',d)[0])
         SAD = [int(m2)]
         num = 0
         for d in DATA:
-            ct1+=1
             m1 = re.match(r'\A\S*',d).group()
             if m1 == m0:
                 m2 = int(re.findall(r'\d*\S$',d)[0])
@@ -250,38 +393,39 @@ def get_macrostates(datasets):
             else:
                 site_name = m0
                 m0 = m1
-                if len(SAD) > 9 and sum(SAD) > 1000 and sum(SAD) < 100000:
+                if len(SAD) > 9 and sum(SAD) < 100000:
                     NS_combos.append([sum(SAD),len(SAD)])
-                    ct2+=1
+                    ct+=1
                 SAD = []
                 abundance = int(re.findall(r'\d*\S$',d)[0])
                 if abundance > 0: SAD.append(abundance)
                 
-        print ct2,'usable sites in',dataset       
+        print ct,'usable sites in',dataset       
     NS_combos = [list(x) for x in set(tuple(x) for x in NS_combos)]
-    random.shuffle(NS_combos)
+    NS_combos = sorted(NS_combos,key=itemgetter(0))
+    _len = len(NS_combos)
     
     # FINDING MACROSTATES FOR THE ABOVE LIST OF N-S COMBINATIONS
     
     while len(NS_combos) > 0:
-        for NS_combo in NS_combos:	
+        ct = 0
+        for NS_combo in NS_combos:    
+            ct+=1
             N = int(NS_combo[0])
             S = int(NS_combo[1])
             OUT = open('/home/kenlocey/combined/' + str(N) + '-' + str(S) + '.txt','a+')
             macros = len(set(OUT.readlines()))
-            p = float(number_of_partitions(N,S))/float(number_of_partitions(N))
-            if p >= 0.00001 and macros <= 500 and macros != number_of_partitions(N,S):
-                print macros,' ',N,S,
+            
+            if macros < 500 and macros != number_of_partitions(N,S):
+                print N,S,ct,_len
                 rand_macros = get_rand_sample(NS_combo) # Use multiprocessing
-                macrostates = []
                 for i in rand_macros:
                     for p in i:
-                        macrostates.append(p)
-                print '  ',len(macrostates)
-                if len(macrostates) > 0:
-                    macrostates = [list(x) for x in set(tuple(x) for x in macrostates)]
-                    for sad in macrostates:
-                        print>>OUT,sad
+                        print>>OUT,p
+                
+                #rand_macros = random_parts(N,S,500)
+                #for i in rand_macros:
+                #    print>>OUT,i
                 OUT.close()
                 
             else:OUT.close()
@@ -397,7 +541,8 @@ def generate_obs_pred_data(datasets):
             N = site[1]
             S = site[2]
             SAD = site[3]
-            if max(SAD) > 1:  
+            if max(SAD) > 1:
+                
                 unique_SADs = []
                 PATH = '/home/kenlocey/combined/'+str(N)+'-'+str(S)+'.txt'
                 if path.exists(PATH) and path.isfile(PATH) and access(PATH, R_OK):
@@ -408,17 +553,18 @@ def generate_obs_pred_data(datasets):
                         unique_SADs.append(sad)
                     data.close()
                 #print N,S,len(unique_SADs)
-                if len(unique_SADs) < 300:
+                if len(unique_SADs) < 100:
                     continue
                 if len(unique_SADs) > 500:
                     unique_SADs = random.sample(unique_SADs,500)
+                unique_SADs = [list(x) for x in set(tuple(x) for x in unique_SADs)]
                 num += 1
                 expSAD = get_hottest_SAD(unique_SADs) # The expected SAD from the random sample  
                 SAD.sort()
                 SAD.reverse()
                 
                 r2 = macroecotools.obs_pred_rsquare(np.log10(SAD), np.log10(expSAD))
-                print dataset,site_name,r2,berger_parker(SAD),berger_parker(expSAD) 
+                print dataset,N,S,site_name,r2,' ',berger_parker(SAD),berger_parker(expSAD),' ',simplest_gini(SAD),simplest_gini(expSAD),' ',e_var(SAD),e_var(expSAD) 
                 
                 ct = 0
                 OUT1 = open('/home/kenlocey/'+dataset+'/'+ dataset + '_obs_pred.txt','a')
@@ -539,8 +685,8 @@ def Evar_kdens_full_feasibles(N,S):
 
 
 def Evar_kdens_feasible_vs_obs(N,S,dataset):
-    """ Plot kernel density curves of Evar for macrostates of feasible sets
-        based on different N and S """
+    """ Plot kernel density curves of Evar for macrostates of a feasible set
+        and a sample of macrostates """
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     DATA = open('/home/kenlocey/' + dataset + '/' + dataset + '-data.txt','r')
@@ -720,20 +866,8 @@ def plot_obs_exp_evenness(datasets):
         SADs = []
         OBS_evar = []
         EXP_evar = []
-        OBS_E = []
-        EXP_E = []
-        OBS_BP = []
-        EXP_BP = []
-        OBS_H = []
-        EXP_H = []
         EXP_EQ = []
         OBS_EQ = []
-        EXP_EC = []
-        OBS_EC = []
-        OBS_J = []
-        EXP_J = []
-        OBS_M = []
-        EXP_M = []
         OBS_NHC = []
         EXP_NHC = []
         
@@ -750,6 +884,7 @@ def plot_obs_exp_evenness(datasets):
                         macros = random.sample(macros,50)
                     OBS_evar.append(e_var(SAD))
                     OBS_E.append(simpsons_evenness(SAD))
+
                     OBS_NHC.append(NHC_evenness(SAD))
                     
                     macrostates = []
@@ -762,6 +897,7 @@ def plot_obs_exp_evenness(datasets):
                     
                     EXP_evar.append(e_var(expSAD))
                     EXP_E.append(simpsons_evenness(expSAD))
+
                     EXP_NHC.append(NHC_evenness(expSAD))
                     
                     data.close()
@@ -780,7 +916,7 @@ def plot_obs_exp_evenness(datasets):
         print 'r-squared for obs-v-pred Evar:',r2,r_value**2
         plt.scatter(EXP_evar, OBS_evar, c='r',marker='o',lw=0,s=10,alpha=0.4)
               
-        
+  
         r2 = macroecotools.obs_pred_rsquare(np.array(OBS_NHC),np.array(EXP_NHC)) # r-squared for the 1:1 line (obs vs. exp)
         slope,intercept,r_value,p_value,std_err = stats.linregress(EXP_NHC,OBS_NHC)
         print 'r-squared for obs-v-pred NHC evenness:',r2,r_value**2
@@ -803,6 +939,9 @@ def plot_obs_exp_evenness(datasets):
         plt.ylim(axis_min,axis_max)
         plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
         plt.scatter(EXP_NHC, OBS_NHC, c='0.25',marker='o',lw=0,s=10,alpha=0.3)
+        ##ticks = np.arange(axis_min,axis_max, abs(axis_max-axis_min)/3.0)
+        ##ticks = np.round_(ticks,decimals=2)
+        ##plt.tick_params(axis='both', which='major', labelsize=8)
         plt.setp(axins, xticks=[], yticks=[])
         
         i+=1
@@ -864,10 +1003,14 @@ def plot_percentile(datasets):
         
         slope,intercept,r_value,p_value,std_err = stats.linregress(x_list_EQ,y_list_EQ)
         print 'percentile EQ: r-value:',r_value,'p-value:',p_value,'slope:',slope,' r-squared:',r_value**2
+        #m,b = np.polyfit(x_list_EQ,y_list_EQ,1)
+        #plt.plot(x_list_EQ, np.array(x_list_EQ)*m +b, c='b',lw=3) 
         plt.scatter(x_list_EQ,y_list_EQ,c='b',marker='o',s=10,lw=0,alpha=0.3)
         
         slope,intercept,r_value,p_value,std_err = stats.linregress(x_list_evar,y_list_evar)
         print 'obs-pred Evar: r-value:',r_value,'p-value:',p_value,'slope:',slope,' r-squared:',r_value**2
+        #m,b = np.polyfit(x_list_evar,y_list_evar,1)
+        #plt.plot(x_list_evar, np.array(x_list_evar)*m +b, c='r',lw=3) 
         plt.scatter(x_list_evar,y_list_evar,c='r',marker='o',s=10,lw=0,alpha=0.3)       
         
         plt.xlim(0,1)
@@ -1071,6 +1214,12 @@ def pairwise_r2_obs_feasible(datasets):
                         macro = eval(macro)
                         r2 = macroecotools.obs_pred_rsquare(np.log10(SAD),np.log10(macro)) # r-squared for the 1:1 line (obs vs. exp) 
                         r2s.append(r2)
+                        #obsEvar = e_var(SAD)
+                        #expEvar = e_var(macro)
+                        #percent_err = 100*(abs(obsEvar - expEvar)/obsEvar) 
+                        #perc_errs.append(percent_err)
+                        #if len(perc_errs) >= 10:break
+                    #P_errs.append(perc_errs)    
                     density = gaussian_kde(r2s)
                     n = len(r2s)
                     xs = np.linspace(0.0,1.0,n)
@@ -1087,3 +1236,88 @@ def pairwise_r2_obs_feasible(datasets):
         print ct,'usable sites in',dataset
         i+=1
     plt.savefig('Figure8.png', dpi=400, pad_inches=0)
+    
+def next_partition(p):
+  if max(p) == 1:
+    #return [sum(p)]
+    return [0]
+  p.sort()
+  p.reverse()
+  q = [ p[n] for n in range(len(p)) if p[n] > 1 ]
+  q[-1] -= 1
+  if (p.count(1)+1) % q[-1] == 0:
+    return q + [q[-1]]*((p.count(1)+1) / q[-1])
+  else:
+    return q + [q[-1]]*((p.count(1)+1) / q[-1]) + [(p.count(1)+1) % q[-1]]    
+    
+
+        
+def compare(size,datasets):
+    
+    NS_combos = []
+    for dataset in datasets:
+        
+        DATA = open('/home/kenlocey/' + dataset + '/' + dataset + '-data.txt','r')
+        ct1 = 0
+        ct2 = 0
+        d = DATA.readline()
+        m0 = re.match(r'\A\S*',d).group()
+        
+        m2 = int(re.findall(r'\d*\S$',d)[0])
+        SAD = [int(m2)]
+        num = 0
+        for d in DATA: # for each line in the dataset
+            ct1+=1
+            m1 = re.match(r'\A\S*',d).group()
+        
+            if m1 == m0:
+                m2 = int(re.findall(r'\d*\S$',d)[0])
+                if m2 > 0:SAD.append(m2)
+            
+            else:
+                site_name = m0
+                m0 = m1
+                if len(SAD) > 9:
+                    NS_combos.append([sum(SAD),len(SAD)])
+                    ct2+=1
+                SAD = []
+                abundance = int(re.findall(r'\d*\S$',d)[0])
+                if abundance > 0:SAD.append(abundance)
+    
+        NS_combos = [list(x) for x in set(tuple(x) for x in NS_combos)]
+    
+    print len(NS_combos)
+    ct = 0
+    for combo in NS_combos:
+        
+        N = int(combo[0])
+        S = int(combo[1])
+        
+        if N > 20000:continue
+        
+        PATH = '/home/kenlocey/combined/'+str(N)+'-'+str(S)+'.txt'
+        if path.exists(PATH) and path.isfile(PATH) and access(PATH, R_OK):
+            fig = plt.figure()
+            
+            SADs  = []
+            data = open(PATH,'r')
+            sampleSADs = data.readlines()
+            if len(sampleSADs) < 500:continue
+            for sad in sampleSADs:
+                SADs.append(eval(sad))  
+            if len(SADs) > 1000:
+                SADs = random.sample(SADs,1000)
+            
+            D = get_kdens_obs(SADs)
+            plt.xlim(0.0, 1.0)
+            plt.plot(D[0],D[1],color='black',lw=2)    
+            
+            SADs = random_parts(N,S,size)
+            D = get_kdens_obs(SADs)
+            plt.xlim(0.0, 1.0)
+            plt.plot(D[0],D[1],color='red',lw=2)
+            data.close()
+            
+            print 'finished:'+str(N)+' '+str(S)
+            plt.savefig('/home/kenlocey/ZPICS/N'+str(N)+'-S'+str(S)+'-'+str(size)+'macros.png', dpi=400, pad_inches=0)
+        else: print 'no file for '+str(combo[0])+'-'+str(combo[1])
