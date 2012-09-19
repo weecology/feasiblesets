@@ -23,136 +23,25 @@ from decimal import *
 
 
 
-
-def simplest_gini(x): #x is a vector of integers  This script was obtained from: https://subversion.american.edu/aisaac/notes/blinder_slides.xhtml
-  #initialize yn and ysum
-  yn, ysum, countx = 0.0, 0.0, 0
-  #compute yN and ysum
-  for xn in sorted(x):
-    yn = (yn + xn)
-    ysum = (ysum + yn)
-    countx = (countx + 1)
-  #compute area below Lorenz curve
-  B = ysum / (countx * yn)
-  return(1 - 2*B)
-  
-  
-def psi_dist(abund, N, S, set=None):
-    '''
-    Calculate the probability of finding 0 to S species with given abundance.
-
-    Parameters
-    ----------
-    abund : int
-        Abundance at which to calculate distribution, from 0 to N (technically 
-        can only be >0 up to N - S - 1).
-    N : int
-        Number of total individuals in community
-    S : int
-        Number of species in community
-    set : int
-        Optional set of allowable parts in partition
-
-    Returns
-    -------
-    psi : ndarray
-        Array giving probability of i species, from 0 to S, with abundance 
-        abund.
-    '''
-
-    tol = 1e-6  # Tolerance for ending loop
-
-    if set == None:
-        parts = number_of_partitions(N, S)
-    else:
-        parts = number_of_partitions_restricted(N, set, S)
-
-    psi_cum = np.zeros(S+2)
-
-    for i in xrange(0, S+2):
-
-        if N - abund*i < 0 or S - i < 0:
-            break
-        else:
-            if set == None:
-                psi_cum[i] = number_of_partitions(N-abund*i, S-i) / parts
-            else:
-                psi_cum[i] = number_of_partitions_restricted(N-abund*i, set, 
-                                                             k=S-i) / parts
-
-        if psi_cum[i] < tol:  # If low probability of higher abunds
-            break
-
-    return psi_cum[:-1] - psi_cum[1:]
-    
-    
-def samp_part(N, S):
-    '''
-    Get uniform random sample of integer partitions of N with length S.
-
-    Parameters
-    ----------
-    N : int
-        Number of total individuals in community
-    S : int
-        Number of species in community
-
-    Returns
-    -------
-    part : ndarray
-        Random partition of length S.
-    '''
-
-    N_run = N
-    S_run = S
-
-    part = np.zeros(S)
-    pind = 0
-
-    for abund in xrange(1, N+1):  # Start at lowest abund = 1
-
-        # Calculate psi for this abund, with only addends >= abund allowed
-        psi = psi_dist(abund, N_run, S_run, set=range(abund, N+1))
-        cum_psi = np.cumsum(psi)
-
-        # Choose num spp w/ this abund
-        num_choice = np.argmax(cum_psi > np.random.random())
-        part[pind:(pind+num_choice)] = abund
-
-        # Increment counters
-        pind += num_choice
-        N_run -= num_choice * abund
-        S_run -= num_choice
-
-        if S_run == 0:  # If have chosen abund for all species
-            break
-            
-    part = part.tolist()    
-    part.reverse()
-    SAD = []
-    for p in part:SAD.append(int(p))
-    return SAD
-
-
-
-def get_modal(_list):
-    """ Finds the kernel density function across a sample """
-    density = gaussian_kde(_list)
-    n = len(_list)
-    xs = np.linspace(0.0,1.0,n)
-    density.covariance_factor = lambda : .5
-    density._compute_covariance()
-    D = [xs,density(xs)]
-    d = 0
-    maxd = 0.0
-    while d < len(D[1]):
-        if D[1][d] > maxd:
-            maxd = D[1][d]
-            exp_mode = D[0][d] # expected mode is the Simpsons evenness value with the greatest kernel density
-        d += 1
-    return exp_mode
-
+########################################################################################################
 ######   A Section of evenness indices and related functions ###########################################
+
+
+def simplest_gini(x): #x is a vector of integers
+    """This script was obtained from: https://subversion.american.edu/aisaac/notes/blinder_slides.xhtml.
+    It yields Gini's coefficient of inequality, a common metric in economics for characterizing inequality
+    in distributions of wealth"""
+    #initialize yn and ysum
+    yn, ysum, countx = 0.0, 0.0, 0
+    #compute yN and ysum
+    for xn in sorted(x):
+      yn = (yn + xn)
+      ysum = (ysum + yn)
+      countx = (countx + 1)
+    #compute area below Lorenz curve
+    B = ysum / (countx * yn)
+    return(1 - 2*B)
+
 def Mcintosh_evenness(SAD):
     S = len(SAD)
     N = sum(SAD)
@@ -168,7 +57,6 @@ def Mcintosh_sample(SADs):
         E = Mcintosh_evenness(sad)
         Es.append(E)
     return Es
-
 
 def pielous_evenness(SAD):
     S = len(SAD)
@@ -264,30 +152,6 @@ def EQ_sample(SADs):
     return EQs   
 
 
-def camargos_evenness(SAD):
-    """ Compute camargos evenness index for each macrostate in a random sample """
-    S = float(len(SAD))
-    N = float(sum(SAD))
-    x = 0.0
-    i = 0
-    while i < S:
-        j = i+1
-        while j < S:
-            pi = SAD[i]/N
-            pj = SAD[j]/N
-            x = x + (pi-pj)/S
-            j+=1
-        i+=1
-    EC = 1 - x
-    return EC 
-def camargos_sample(SADs):
-    ECs = []
-    for sad in SADs:
-        EC = camargos_evenness(sad)
-        ECs.append(EC)
-    return ECs
-    
-    
 def e_var(SAD):
     P = np.log(SAD)
     S = len(SAD)
@@ -312,8 +176,9 @@ def feasible_set_Evar(N,S):
         Evar = e_var(sad)
         Evars.append(Evar)
     return Evars 
-########################################################################################################
 
+########################################################################################################
+######   A Section devoted to finding random macrostates/integer partitions ############################
 
 def random_parts(N,S,size): # A newly discovered method for generating random samples of feasible sets
     
@@ -431,8 +296,29 @@ def get_macrostates(datasets):
                 
             else:OUT.close()
     return
-    
 
+########################################################################################################
+##### A Section devoted to examining randoms samples of feasibles sets and empirical data ##############
+
+
+def get_modal(_list):
+    """ Finds the kernel density function across a sample """
+    density = gaussian_kde(_list)
+    n = len(_list)
+    xs = np.linspace(0.0,1.0,n)
+    density.covariance_factor = lambda : .5
+    density._compute_covariance()
+    D = [xs,density(xs)]
+    d = 0
+    maxd = 0.0
+    while d < len(D[1]):
+        if D[1][d] > maxd:
+            maxd = D[1][d]
+            exp_mode = D[0][d] # expected mode is the Simpsons evenness value with the greatest kernel density
+        d += 1
+    return exp_mode
+    
+    
 def get_hottest_SAD(unique_SADs):
     """ Find the SAD in a random sample with the greatest average commonness 
         among its ranked abundance states. This SAD is taken to represent the 
@@ -578,12 +464,12 @@ def generate_obs_pred_data(datasets):
         print 'FINISHED: ',dataset,' ',num,'\n'  
         
 
-def import_obs_pred_data(input_filename):   # TAKEN FROM THE mete_sads.py script
+def import_obs_pred_data(input_filename):   # TAKEN FROM THE mete_sads.py script used for White et al. (2012)
     data = np.genfromtxt(input_filename, dtype = "S15,f8,f8", names = ['site','obs','pred'], delimiter = " ")
     return data
 
 
-def hist_mete_r2(sites, obs, pred):
+def hist_mete_r2(sites, obs, pred):  # TAKEN FROM Macroecotools or the mete_sads.py script used for White et al. (2012)
     """Generate a kernel density estimate of the r^2 values for obs-pred plots"""
     r2s = []
     for site in sites:
@@ -609,8 +495,8 @@ def obs_pred_r2_multi(datasets, data_dir='/home/kenlocey/'): # TAKEN FROM THE me
         print dataset,' ',macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))     
 
 
-def plot_obs_pred_sad(datasets, data_dir='/home/kenlocey/', radius=2):
-    """Multiple obs-predicted plotter"""
+def plot_obs_pred_sad(datasets, data_dir='/home/kenlocey/', radius=2): # TAKEN FROM THE mete_sads.py script used for White et al. (2012)
+    """Multiple obs-predicted plotter""" 
     fig = plt.figure()
     for i, dataset in enumerate(datasets):
         print dataset
@@ -1306,13 +1192,14 @@ def compare(size,datasets):
             if len(sampleSADs) < 500:continue
             for sad in sampleSADs:
                 SADs.append(eval(sad))  
-            if len(SADs) > 1000:
-                SADs = random.sample(SADs,1000)
+            if len(SADs) > 500:
+                SADs = random.sample(SADs,500)
             
             D = get_kdens_obs(SADs)
             plt.xlim(0.0, 1.0)
             plt.plot(D[0],D[1],color='black',lw=2)    
             
+            SADs = []
             SADs = random_parts(N,S,size)
             D = get_kdens_obs(SADs)
             plt.xlim(0.0, 1.0)
@@ -1322,3 +1209,105 @@ def compare(size,datasets):
             print 'finished:'+str(N)+' '+str(S)
             plt.savefig('/home/kenlocey/ZPICS/N'+str(N)+'-S'+str(S)+'-'+str(size)+'macros.png', dpi=400, pad_inches=0)
         else: print 'no file for '+str(combo[0])+'-'+str(combo[1])
+
+####################################################################################################################
+######   Two functions written by Justin Kitzes. One generates uniform random macrostates from the feasible set#####
+######   The other function generates a frequency distribution yielding the frequency with which multiplicities ####
+######   of an integer appear within the feasible set ##############################################################
+
+
+def psi_dist(abund, N, S, set=None):
+    '''
+    Calculate the probability of finding 0 to S species with given abundance.
+
+    Parameters
+    ----------
+    abund : int
+        Abundance at which to calculate distribution, from 0 to N (technically 
+        can only be >0 up to N - S - 1).
+    N : int
+        Number of total individuals in community
+    S : int
+        Number of species in community
+    set : int
+        Optional set of allowable parts in partition
+
+    Returns
+    -------
+    psi : ndarray
+        Array giving probability of i species, from 0 to S, with abundance 
+        abund.
+    '''
+
+    tol = 1e-6  # Tolerance for ending loop
+
+    if set == None:
+        parts = number_of_partitions(N, S)
+    else:
+        parts = number_of_partitions_restricted(N, set, S)
+
+    psi_cum = np.zeros(S+2)
+
+    for i in xrange(0, S+2):
+
+        if N - abund*i < 0 or S - i < 0:
+            break
+        else:
+            if set == None:
+                psi_cum[i] = number_of_partitions(N-abund*i, S-i) / parts
+            else:
+                psi_cum[i] = number_of_partitions_restricted(N-abund*i, set, 
+                                                             k=S-i) / parts
+
+        if psi_cum[i] < tol:  # If low probability of higher abunds
+            break
+
+    return psi_cum[:-1] - psi_cum[1:]
+    
+    
+def samp_part(N, S):
+    '''
+    Get uniform random sample of integer partitions of N with length S.
+
+    Parameters
+    ----------
+    N : int
+        Number of total individuals in community
+    S : int
+        Number of species in community
+
+    Returns
+    -------
+    part : ndarray
+        Random partition of length S.
+    '''
+
+    N_run = N
+    S_run = S
+
+    part = np.zeros(S)
+    pind = 0
+
+    for abund in xrange(1, N+1):  # Start at lowest abund = 1
+
+        # Calculate psi for this abund, with only addends >= abund allowed
+        psi = psi_dist(abund, N_run, S_run, set=range(abund, N+1))
+        cum_psi = np.cumsum(psi)
+
+        # Choose num spp w/ this abund
+        num_choice = np.argmax(cum_psi > np.random.random())
+        part[pind:(pind+num_choice)] = abund
+
+        # Increment counters
+        pind += num_choice
+        N_run -= num_choice * abund
+        S_run -= num_choice
+
+        if S_run == 0:  # If have chosen abund for all species
+            break
+            
+    part = part.tolist()    
+    part.reverse()
+    SAD = []
+    for p in part:SAD.append(int(p))
+    return SAD
