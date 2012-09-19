@@ -10,7 +10,8 @@ import numpy as np
 import re
 
 
-""" Here are several recursion functions that accomplish integer partitioning related tasks """
+""" Here are several recursion functions that accomplish integer partitioning related tasks.
+    The recursion limit and the call stack might have to be increased for large N (e.g. N > 200) """
 
 def CountCombinations(N, Minimal): # A recursive function to find the number of partitions with Minimal as the smallest part
   temp = 1
