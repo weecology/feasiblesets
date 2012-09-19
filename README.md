@@ -53,5 +53,7 @@ Most any Python script can be run at C speeds by:
 * replacing the .py extension in your script with .pyx
 * create a setup file. To save the user a hassle, we have made several setup files for scripts in this repository.
 * run this command from within the folder containing the .pyx file and the setup file:
-python setup_thescriptsname.py build_ext --inplace
+
+
+        python setup_thescriptsname.py build_ext --inplace
 
