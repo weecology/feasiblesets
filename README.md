@@ -58,3 +58,9 @@ Most any Python script can be run at C speeds by:
 
         python setup_thescriptsname.py build_ext --inplace
 
+iPython and iPython Notebook
+----------------------------
+
+We are currently rescripting copies of repository files to be used in iPython Notebook. Running scripts in
+iPython notebook will enable users to read comments in a convenient form, run blocks of code, and visualize
+results between blocks of code. 
