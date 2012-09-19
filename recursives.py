@@ -10,6 +10,8 @@ import numpy as np
 import re
 
 
+""" Here are several recursion functions that accomplish integer partitioning related tasks """
+
 def CountCombinations(N, Minimal): # A recursive function to find the number of partitions with Minimal as the smallest part
   temp = 1
   if N<=1:return 1
