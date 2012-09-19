@@ -40,3 +40,18 @@ Python version 2.6.5 or higher
 Cython
 Sage version 4.7.2 or higher
 
+
+Cython
+------
+
+Cython is a language that makes writing C extensions for the Python language as easy as Python itself.
+It is based on the well-known Pyrex, but supports more cutting edge functionality and optimizations.
+*http://www.cython.org/*  
+setup tutorial: *http://docs.cython.org/src/userguide/tutorial.html*
+
+Most any Python script can be run at C speeds by:
+* replacing the .py extension in your script with .pyx
+* create a setup file. To save the user a hassle, we have made several setup files for scripts in this repository.
+* run this command from within the folder containing the .pyx file and the setup file:
+python setup_thescriptsname.py build_ext --inplace
+
