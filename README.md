@@ -28,8 +28,9 @@ Included files
 
 * Python modules (feasible_functions.py) to generate and examine feasible sets and random macrostates thereof
 * Python scripts to reproduce results and figures used by Locey and White (in final prep)
-* A dictionary of random macrostates (coming). This would be expensive for others to reproduce.
-* A documentation file to describe what all this feasible set nonsense is for
+* Cython setup files
+* A dictionary of random macrostates (if we can overcome size restrictions). This would be expensive for others to reproduce.
+* A documentation file to describe what all this feasible set stuff is for
 
 
 
