@@ -190,7 +190,7 @@ def random_parts(N,S,size): # A newly discovered method for generating random sa
             if len(SAD) == 1:break
             SAD = list(Partition(SAD).conjugate())
             if len(SAD) == S or len(SAD) < 3:break
-            r1 = choice(list(set(SAD)))
+            r1 = choice(SAD)
             SAD.remove(r1)            
             r2 = choice(SAD)
             SAD.remove(r2)
@@ -198,7 +198,7 @@ def random_parts(N,S,size): # A newly discovered method for generating random sa
             SAD.append(r1+r2)
             SAD.sort()
             SAD.reverse()
-            if len(SAD) < 3:break
+            
                 
         if len(SAD)==S:
             SADs.append(SAD)
