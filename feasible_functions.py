@@ -26,21 +26,26 @@ import random, decimal
 ########################################################################################################
 ######   A Section devoted to evenness indices and descriptive statistical functions ###################
 
+def Shannons_H(sad):
+    H = 0
+    for i in sad:
+        p = float(i)/float(sum(sad))
+        H += p*ln(RDF(p))
+    return H*-1
+    
+def simplest_gini(x):
+    """Return computed Gini coefficient of inequality. This function was found at http://econpy.googlecode.com/svn/trunk/pytrix/utilities.py
 
-def simplest_gini(x): #x is a vector of integers
-    """This script was obtained from: https://subversion.american.edu/aisaac/notes/blinder_slides.xhtml.
-    It yields Gini's coefficient of inequality, a common metric in economics for characterizing inequality
-    in distributions of wealth"""
-    #initialize yn and ysum
-    yn, ysum, countx = 0.0, 0.0, 0
-    #compute yN and ysum
-    for xn in sorted(x):
-      yn = (yn + xn)
-      ysum = (ysum + yn)
-      countx = (countx + 1)
-    #compute area below Lorenz curve
-    B = ysum / (countx * yn)
-    return(1 - 2*B)
+	:note: follows basic formula
+	:see: `calc_gini2`
+	:contact: aisaac AT american.edu
+	"""
+	x = sorted(x)  # increasing order
+	n = len(x)
+	G = sum(xi * (i+1) for i,xi in enumerate(x))
+	G = 2.0*G/(n*sum(x)) #2*B
+	return G - 1 - (1./n)
+    
 def gini_sample(SADs):
     """ Compute Gini's coefficient for each macrostate in a random sample """
     Gs = []
