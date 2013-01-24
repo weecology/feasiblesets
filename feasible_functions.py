@@ -430,7 +430,7 @@ def get_rand_sample(NS_combo): #choose between worker2 (random partitioning alg 
     
     unique_SADs = []
     pool = Pool()
-    unique_SADs = pool.map(worker2, [NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo])
+    unique_SADs = pool.map(worker1, [NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo])
     """ worker1 and worker2 call different functions for generating random macrostates. worker1 uses Sage's function (def. worker2 uses the function developed by Ken Locey (faster)."""
     pool.close()
     pool.join()
