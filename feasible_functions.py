@@ -34,18 +34,18 @@ def Shannons_H(sad):
     return H*-1
     
 def simplest_gini(x):
-    """Return computed Gini coefficient of inequality. This function was found at http://econpy.googlecode.com/svn/trunk/pytrix/utilities.py
+        """Return computed Gini coefficient of inequality. This function was found at http://econpy.googlecode.com/svn/trunk/pytrix/utilities.py """
 
-	:note: follows basic formula
-	:see: `calc_gini2`
-	:contact: aisaac AT american.edu
-	"""
-	x = sorted(x)  # increasing order
-	n = len(x)
-	G = sum(xi * (i+1) for i,xi in enumerate(x))
-	G = 2.0*G/(n*sum(x)) #2*B
-	return G - 1 - (1./n)
-    
+        #note: follows basic formula
+        #see: `calc_gini2`
+        #contact: aisaac AT american.edu
+        	
+        x = sorted(x)  # increasing order
+        n = len(x)
+        G = sum(xi * (i+1) for i,xi in enumerate(x))
+        G = 2.0*G/(n*sum(x)) #2*B
+        return G - 1 - (1./n)
+
 def gini_sample(SADs):
     """ Compute Gini's coefficient for each macrostate in a random sample """
     Gs = []
@@ -321,7 +321,7 @@ def get_NS_combos_labels(datasets):
     NS_combos = []
     NS_combos_dataset = []
     for dataset in datasets:
-        DATA = open('/home/kenlocey/data/' + dataset + '/' + dataset + '-data.txt','r')
+        DATA = open('/home/kenlocey/data1/' + dataset + '/' + dataset + '-data.txt','r')
         d = DATA.readline()
         m0 = re.match(r'\A\S*',d).group()
         m2 = int(re.findall(r'\d*\S$',d)[0])
@@ -351,10 +351,17 @@ def get_NS_combos(datasets):
     NS_combos = []
     total_combos = 0
     for dataset in datasets:
+        #print dataset
+        ct=0
         SADs = get_SADs(dataset)
-        print len(SADs),'usable sites in',dataset      
         for SAD in SADs:
-            NS_combos.append([sum(SAD),len(SAD)])
+            N = sum(SAD)
+            S = len(SAD)
+            #p = float(number_of_partitions(N,S))/float(number_of_partitions(N))
+            #if p > 10.0**-4:
+            #ct+=1
+            NS_combos.append([N,S])
+        print dataset     
         
     NS_combos = [list(x) for x in set(tuple(x) for x in NS_combos)]
     print len(NS_combos),'unique NS_combos' 
@@ -374,39 +381,6 @@ def get_all_partitions(N,S):
 ########################################################################################################
 ######   A Section devoted to finding macrostates/integer partitions ############################
 
-def random_parts(N,S,size): # A newly discovered method for generating random samples of feasible sets
-    
-    SADs = []
-    while len(SADs) < size:
-        SAD = list(Partitions(N).random_element())
-        
-        while len(SAD) != S:
-            if len(SAD) == 1:break
-            SAD = list(Partition(SAD).conjugate())
-            if len(SAD) == S or len(SAD) < 3:break
-            r1 = choice(list(set(SAD)))
-            SAD.remove(r1)            
-            r2 = choice(SAD)
-            SAD.remove(r2)
-            SAD = list(Partition(SAD).conjugate()) # get the conjugate before appending
-            SAD.append(r1+r2)
-            SAD.sort()
-            SAD.reverse()
-            if len(SAD) < 3:break
-                
-        if len(SAD)==S:
-            SADs.append(SAD)
-            #print len(SADs),N,S
-            
-    SADs = [list(x) for x in set(tuple(x) for x in SADs)]
-    return SADs
-    
-def worker2(NS_combo):
-    """thread worker function"""
-    set_random_seed()
-    random_macros = random_parts(NS_combo[0],NS_combo[1],63)
-    return random_macros    
-
 def get_random_macrostates(NS_combo):    
     N = int(NS_combo[0])
     S = int(NS_combo[1])
@@ -416,21 +390,26 @@ def get_random_macrostates(NS_combo):
         macro = Partitions(N).random_element()
         if len(macro) == S:
             rand_macros.append(macro)
+        else:
+            macro = Partition(macro).conjugate()
+            if len(macro) == S:
+                rand_macros.append(macro)
         ct+=1                
     rand_macros = [list(x) for x in set(tuple(x) for x in rand_macros)]
     return rand_macros
-
-def worker1(NS_combo):
+    
+def worker(NS_combo):
     """thread worker function"""
     set_random_seed()
     random_macros = get_random_macrostates(NS_combo)
     return random_macros
-    
-def get_rand_sample(NS_combo): #choose between worker2 (random partitioning alg derived by KJL) and worker1 (random partitioning alg provided by SAGE)
+
+
+def get_rand_sample(NS_combo): #choose between worker2 (random partitioning alg derived by KJL (may not return uniform random samples) and worker1 (random partitioning alg provided by SAGE)
     
     unique_SADs = []
     pool = Pool()
-    unique_SADs = pool.map(worker1, [NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo])
+    unique_SADs = pool.map(worker, [NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo,NS_combo])
     """ worker1 and worker2 call different functions for generating random macrostates. worker1 uses Sage's function (def. worker2 uses the function developed by Ken Locey (faster)."""
     pool.close()
     pool.join()
@@ -438,6 +417,7 @@ def get_rand_sample(NS_combo): #choose between worker2 (random partitioning alg 
 
 
 def get_random_macrostates_for_NScombos(NS_combos):    
+    random.shuffle(NS_combos)
     while NS_combos:
         ct = 0
         for NS_combo in NS_combos:
@@ -445,25 +425,27 @@ def get_random_macrostates_for_NScombos(NS_combos):
             ct+=1
             N = int(NS_combo[0])
             S = int(NS_combo[1])
-            OUT = open('/home/kenlocey/combined1/' + str(N) + '-' + str(S) + '.txt','a+')
-            macros = len(set(OUT.readlines()))
             p = float(number_of_partitions(N,S))/float(number_of_partitions(N))
-            if p > 10.0**-6 and macros < 400 and macros != number_of_partitions(N,S):
-                rand_macros = get_rand_sample(NS_combo) # Use multiprocessing
-                for i in rand_macros:
-                    for p in i:
-                        print>>OUT,p
-                OUT.close()
-                NS_combos.remove(NS_combo)
+            if p > 0.01:
+                OUT = open('/home/kenlocey/combined1/' + str(N) + '-' + str(S) + '.txt','a+')
+                macros = len(set(OUT.readlines()))
+            
+                if macros < 400 and macros != number_of_partitions(N,S):
+                    rand_macros = get_rand_sample(NS_combo) # Use multiprocessing
+                    for i in rand_macros:
+                        for p in i:
+                            print>>OUT,p
+                    OUT.close()
+                    NS_combos.remove(NS_combo)
                     
-            elif len(NS_combos) == 1:
-                NS_combos.remove(NS_combo)
-                OUT.close
-                break
-            else:    
-                NS_combos.remove(NS_combo)
-                OUT.close()
-            if not NS_combos:break
+                elif len(NS_combos) == 1:
+                    NS_combos.remove(NS_combo)
+                    OUT.close
+                    break
+                else:    
+                    NS_combos.remove(NS_combo)
+                    OUT.close()
+                if not NS_combos:break
     return
 
 def get_random_macrostates_for_datasets(datasets):
@@ -509,9 +491,9 @@ def get_common_combos2(datasets,Nmin,Ndiff,Sdiff):
                         _list.append(combo2[2])
         
         u_list = list(set(_list))
-        if len(u_list) >= 5:
+        if len(u_list) >= 1 and ct > 40:
             ct3+=1
-            #print combo1,' ',ct,' ',len(u_list)
+            print combo1,' ',ct,' ',len(u_list),u_list
             common_combos.append([combo1[0],combo1[1],ct,u_list])                        
             #if ct3 == 3:break    
     return (common_combos)
@@ -610,7 +592,7 @@ def generate_obs_pred_data(datasets):
             if max(SAD) > 1:
                 
                 unique_SADs = []
-                PATH = '/home/kenlocey/combined1/'+str(N)+'-'+str(S)+'.txt'
+                PATH = '/home/kenlocey/combined1/'+str(N)+'-'+str(S)+'.txt' # use /home/kenlocey/combined1/' for non genome datasets
                 if path.exists(PATH) and path.isfile(PATH) and access(PATH, R_OK):
                     data = open(PATH,'r')
                     macrostates = data.readlines()
@@ -635,7 +617,7 @@ def generate_obs_pred_data(datasets):
                 #print dataset,N,S,site_name,r2,' ',berger_parker(SAD),berger_parker(expSAD),' ',simplest_gini(SAD),simplest_gini(expSAD),' ',e_var(SAD),e_var(expSAD) 
                 
                 ct = 0
-                OUT1 = open('/home/kenlocey/data/'+dataset+'/'+ dataset + '_obs_pred.txt','a')
+                OUT1 = open('/home/kenlocey/data/'+dataset+'/'+ dataset + '_obs_pred.txt','a')                       # use 'data' for data and 'data' for anything else
                 while ct < len(expSAD): # write to file, by cite, observed and expected ranked abundances
                     print>>OUT1, site_name,SAD[ct],expSAD[ct]
                     ct += 1
@@ -689,9 +671,9 @@ def plot_obs_pred_sad(datasets, data_dir='/home/kenlocey/data/', radius=2): # TA
         
         axis_min = 0.5 * min(obs)
         axis_max = 2 * max(obs)
-        ax = fig.add_subplot(3,3,i+1) 
+        ax = fig.add_subplot(2,3,i+1) 
         macroecotools.plot_color_by_pt_dens(pred, obs, radius, loglog=1, 
-                                            plot_obj=plt.subplot(3,3,i+1))      
+                                            plot_obj=plt.subplot(2,3,i+1))      
         plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
         plt.xlim(axis_min, axis_max)
         plt.ylim(axis_min, axis_max)
@@ -809,7 +791,7 @@ def get_all_SADs(NSlist): # Figure 1 Locey and White (2013)        #############
             
             if N > 10:
                 parts = []
-                PATH = '/home/kenlocey/combined/'+str(N)+'-'+str(S)+'.txt'
+                PATH = '/home/kenlocey/combined1/'+str(N)+'-'+str(S)+'.txt'
                 data = open(PATH,'r')
                 macrostates = data.readlines()
                 for macrostate in macrostates:
@@ -838,7 +820,7 @@ def get_all_SADs(NSlist): # Figure 1 Locey and White (2013)        #############
             elif ct == 2: clr= '#FF34B3' #red
             macros = []
             if N > 10:
-                PATH = '/home/kenlocey/combined/'+str(N)+'-'+str(S)+'.txt'
+                PATH = '/home/kenlocey/combined1/'+str(N)+'-'+str(S)+'.txt'
                 data = open(PATH,'r')
                 macrostates = data.readlines()
                 for macrostate in macrostates:
@@ -894,7 +876,7 @@ def get_all_SADs(NSlist): # Figure 1 Locey and White (2013)        #############
             elif ct == 1: clr= '0.35'  #grey
             elif ct == 2: clr= '#FF34B3' #red
             parts = []
-            PATH = '/home/kenlocey/combined/'+str(N)+'-'+str(S)+'.txt'
+            PATH = '/home/kenlocey/combined1/'+str(N)+'-'+str(S)+'.txt'
             data = open(PATH,'r')
             macrostates = data.readlines()
             for macrostate in macrostates:
@@ -951,7 +933,7 @@ def plot_obs_exp_evenness(datasets):
         for SAD in SADs:
             N = sum(SAD)
             S = len(SAD)
-            PATH = '/home/kenlocey/combined/' + str(N) + '-' + str(S) + '.txt'
+            PATH = '/home/kenlocey/combined1/' + str(N) + '-' + str(S) + '.txt'
             if path.exists(PATH) and path.isfile(PATH) and access(PATH, R_OK):
                 data = open(PATH,'r')
                 macros = set(data.readlines())
@@ -1030,13 +1012,13 @@ def plot_percentile(datasets):
     ax = fig.add_subplot(1,1,i)
     
     #SADs = []
-    #x_list_ginis = []
-    #y_list_ginis = []
+    #x_list = []
+    #y_list = []
     
     for dataset in datasets:
         
-        x_list_ginis = []
-        y_list_ginis = []
+        x_list = []
+        y_list = []
         c1 = decimal.Decimal(str(random.random()))
         c2 = decimal.Decimal(str(random.random()))
         c3 = decimal.Decimal(str(random.random()))
@@ -1093,38 +1075,38 @@ def plot_percentile(datasets):
                 if len(macros) >= 100:
                     if len(macros) > 500:
                         macros = random.sample(macros,500)
-                    obs_gini = simplest_gini(SAD)
-                    x_list_ginis.append(obs_gini)
+                    obs = NHC_evenness(SAD)
+                    x_list.append(obs)
                     macrostates = []
                     for macro in macros:
                         macrostates.append(eval(macro))
-                    sample_gini = []
+                    sample = []
                     for macro in macrostates:
-                        sample_gini.append(simplest_gini(macro))
+                        sample.append(NHC_evenness(macro))
                         
-                    percentile_gini = stats.percentileofscore(sample_gini,obs_gini)
-                    #print len(sample_gini),' ',percentile_gini
-                    y_list_ginis.append(percentile_gini)
+                    percentile = stats.percentileofscore(sample,obs)
+                    #print len(sample),' ',percentile
+                    y_list.append(percentile)
                     data.close()
                     
                 else:data.close()
         
-        if len(y_list_ginis) > 0: #and len(SADs) > 30:
-            #slope,intercept,r_value,p_value,std_err = stats.linregress(x_list_ginis,y_list_ginis)
-            #print 'percentile Gini: r-value:',r_value,'p-value:',p_value,'slope:',slope,' r-squared:',r_value**2
-            #m,b = np.polyfit(x_list_ginis,y_list_ginis,1)
-            #plt.plot(x_list_ginis, np.array(x_list_ginis)*m +b, c='b',lw=2) 
-            plt.scatter(x_list_ginis,y_list_ginis,color=(c1,c2,c3),marker='o',s=100,lw=0,alpha=0.6)
+        if len(y_list) > 0: #and len(SADs) > 30:
+            #slope,intercept,r_value,p_value,std_err = stats.linregress(x_list,y_list)
+            #print 'percentile: r-value:',r_value,'p-value:',p_value,'slope:',slope,' r-squared:',r_value**2
+            #m,b = np.polyfit(x_list,y_list,1)
+            #plt.plot(x_list, np.array(x_list)*m +b, c='b',lw=2) 
+            plt.scatter(x_list,y_list,color=(c1,c2,c3),marker='o',s=100,lw=0,alpha=0.6)
             plt.plot([-10],[-10],color=(c1,c2,c3), label=dataset,lw=4) 
             
-    #plt.scatter(x_list_ginis,y_list_ginis,color=(c1,c2,c3),marker='o',s=30,lw=0,alpha=0.5)
+    #plt.scatter(x_list,y_list,color=(c1,c2,c3),marker='o',s=30,lw=0,alpha=0.5)
         
-    plt.xlim(0,1.6)
+    #plt.xlim(min(x_list),0.6)
     plt.ylim(0,100)
-    plt.setp(ax, xticks = [0.0,0.2,0.4,0.6,0.8,1.0], yticks=[20,40,60,80,100])
+    #plt.setp(ax, xticks = [0.0,0.2,0.4	], yticks=[20,40,60,80,100])
     plt.tick_params(axis='both', which='major', labelsize=14)
-    leg = plt.legend(loc=1,prop={'size':14})
-    leg.draw_frame(False)
+    #leg = plt.legend(loc=1,prop={'size':14})
+    #leg.draw_frame(False)
       
     # Create inset for kdens of site level comparisons of evenness to the feasible set
     #slope,intercept,r_value,p_value,std_err = stats.linregress(x_list_NHC,y_list_NHC)
@@ -1134,10 +1116,10 @@ def plot_percentile(datasets):
     #plt.setp(axins, xticks=[], yticks=[])
         
     i+=1
-    plt.xlabel("Gini's inequality",fontsize=18)
-    plt.ylabel("Percentile of a random sample",fontsize=18)    
+    plt.xlabel("Species evenness (NHC)",fontsize=18)
+    plt.ylabel("Percentile of random sample",fontsize=18)    
     #plt.legend(loc=1,prop={'size':10})
-    plt.savefig('percentile.png', dpi=1000, bbox_inches = 'tight', pad_inches=0.1)  
+    plt.savefig('percentile.png', dpi=800, bbox_inches = 'tight', pad_inches=0.1)  
     
     
 def get_500_RADs(NS_combos): 
@@ -1285,7 +1267,7 @@ def compare(size,datasets):
         S = int(combo[1])
         
         if N > 20000:continue
-        PATH = '/home/kenlocey/combined/'+str(N)+'-'+str(S)+'.txt'
+        PATH = '/home/kenlocey/combined1/'+str(N)+'-'+str(S)+'.txt'
         if path.exists(PATH) and path.isfile(PATH) and access(PATH, R_OK):
             fig = plt.figure()
             
@@ -1478,3 +1460,32 @@ def next_partition(p):
     return q + [q[-1]]*((p.count(1)+1) / q[-1])
   else:
     return q + [q[-1]]*((p.count(1)+1) / q[-1]) + [(p.count(1)+1) % q[-1]]
+    
+    
+def get_random_macrostates_data(NS_combo):    
+    N = int(NS_combo[0])
+    S = int(NS_combo[1])
+    ct = 0
+    rand_macros = []
+    while len(rand_macros) < 63 and ct < 50000:
+        macro = Partitions(N).random_element()
+        if len(macro) == S:
+            #X = float(min(macro))/sum(macro) # a constraint on the minimum
+            #X = Shannons_H(macro)
+            #if X < 2.9 and X > 2.7:
+            rand_macros.append(macro)
+            print len(rand_macros)#,' ',X
+        else:
+            macro = Partition(macro).conjugate()
+            if len(macro) == S:
+                #X = float(min(macro))/sum(macro) # a constraint on the mininum
+                #X = Shannons_H(macro)
+                #if X < 2.9 and X > 2.7:
+                rand_macros.append(macro)
+                print len(rand_macros)#,' ',X
+        ct+=1
+        	            
+    rand_macros = [list(x) for x in set(tuple(x) for x in rand_macros)]
+    return rand_macros    
+
+    
