@@ -636,10 +636,11 @@ def import_obs_pred_data(input_filename):   # TAKEN FROM THE mete_sads.py script
 def hist_mete_r2(sites, obs, pred):  # TAKEN FROM Macroecotools or the mete_sads.py script used for White et al. (2012)
     """Generate a kernel density estimate of the r^2 values for obs-pred plots"""
     r2s = []
-    for site in sites:
+    for site in np.unique(sites):
         obs_site = obs[sites==site]
         pred_site = pred[sites==site]
         r2 = macroecotools.obs_pred_rsquare(obs_site, pred_site)
+        print site,r2
         r2s.append(r2)
     hist_r2 = np.histogram(r2s, range=(0, 1))
     xvals = hist_r2[1] + (hist_r2[1][1] - hist_r2[1][0])
