@@ -25,7 +25,7 @@ datasets = ['BBS','CBC','FIA','GENTRY','MCDB','TERA','AQUA','FUNGI']
 """ Generate text files of observed vs expected SAD data. Copies of the files used in
     Locey and White (2013) can be found in the 'public_data' folder of this repository """
 
-""" Generate figures from Locey and White (201?) """
+""" Generate figures from Locey and White (2013) """
 # generate figure 1
 ff.get_all_SADs([[1000,[40,140,210]]])
 
