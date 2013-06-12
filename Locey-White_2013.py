@@ -14,18 +14,16 @@ import re
 
 datasets = ['BBS','CBC','FIA','GENTRY','MCDB','TERA','AQUA','FUNGI']
 
+#ff.get_random_macrostates_for_datasets(datasets)
 """ Find random macrostates for combinations of N and S found in datasets. 
     The user should check the 'get_random_macrostates_for_datasets' function in the module
     'feasible_functions' to ensure that the desired number of random macrostates, along
-    with other options are chosen.
-    
-    Alternatively, the user can email Ken Locey (ken@weecology.org) to request a copy
-    of the macrostates we generated. Copies will be sent ASAP. """ 
-#ff.get_random_macrostates_for_datasets(datasets)
+    with other options are chosen. Alternatively, the user can email Ken Locey
+    ken@weecology.org to request a copy of the macrostates we generated; it will be sent ASAP. """ 
 
+#ff.generate_obs_pred_data(datasets)
 """ Generate text files of observed vs expected SAD data. Copies of the files used in
     Locey and White (2013) can be found in the 'public_data' folder of this repository """
-#ff.generate_obs_pred_data(datasets)
 
 """ Generate figures from Locey and White (201?) """
 # generate figure 1
