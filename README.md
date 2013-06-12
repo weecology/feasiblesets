@@ -1,10 +1,37 @@
-Using feasible sets for understanding distributions of wealth
+feasiblesets 
 ============
 
 Research code for understanding distributions of wealth in the context of all possible distributions.
 
+Files and Folders
+-----------------
+
+1. FEASIBLE_FUNCTIONS   --Cython version of feasible_functions.py. Converting a .py file to .pyx (Cython) 
+requires addtional files (see: http://docs.cython.org/src/userguide/tutorial.html).
+Note, the feasible_functions.pyx file as well as feasible_functions.py (depending on whether the user
+want to run in Cython or pure Python) require the macroecotools module that is provided in this repository.
+
+2. public_data --folder containing public data and data files (observed vs predicted sads)
+
+3. Locey-White_2013.py  --Python file that recreates all figures in the main body of Locey and White (2013).
+Currently calls feasible_functions module from the FEASIBLE_FUNCTIONS directory, but can also be set to 
+use the feasible_functions.py file.
+
+4. combine_macrostates.py --Python script that combines random generated macrostates from several folders.
+For example, if multiple machines have generated files of macrostates matching N-S combinations, we will
+to combine the macrostates into a single file holding all of them.
+
+5. feasible_functions.py  --Python script containing all functions (and then some) used to generate all figures
+in the main body and appendices of Locey and White (2013). 
+
+
+blip
+blip,
+check back later
+
+
 License
-=======
+-------
 
 feasiblesets is licensed under the open source MIT License
 
