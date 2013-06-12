@@ -17,7 +17,9 @@ want to run in Cython or pure Python) require the macroecotools module that is p
 Currently calls feasible_functions module from the FEASIBLE_FUNCTIONS directory, but can also be set to 
 use the feasible_functions.py file.
 
-4. combine_macrostates
+4. combine_macrostates.py --Python script that combines random generated macrostates from several folders.
+For example, if multiple machines have generated files of macrostates matching N-S combinations, we will
+to combine the macrostates into a single file holding all of them.
 
 
 
