@@ -21,6 +21,8 @@ use the feasible_functions.py file.
 For example, if multiple machines have generated files of macrostates matching N-S combinations, we will
 to combine the macrostates into a single file holding all of them.
 
+5. feasible_functions.py  --Python script containing all functions (and then some) used to generate all figures
+in the main body and appendices of Locey and White (2013). 
 
 
 blip
