@@ -1,10 +1,19 @@
-Using feasible sets for understanding distributions of wealth
+feasiblesets 
 ============
 
 Research code for understanding distributions of wealth in the context of all possible distributions.
 
+Files and Folders
+-----------------
+
+blip
+blip
+blip,
+check back later
+
+
 License
-=======
+-------
 
 feasiblesets is licensed under the open source MIT License
 
