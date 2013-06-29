@@ -275,7 +275,7 @@ def get_expSADs_fromfile(dataset):
         
         for d in DATA:
             ct1+=1
-            m1 = re.match(r'\A\S*',d).group()
+            m1 = re.match(r'\S*',d).group()
             if m1 == m0:
                 m2 = int(re.findall(r'\d*\S$',d)[0])
                 if m2 > 0:SAD.append(m2)
@@ -662,7 +662,7 @@ def hist_mete_r2(sites, obs, pred):  # TAKEN FROM Macroecotools or the mete_sads
         obs_site = obs[sites==site]
         pred_site = pred[sites==site]
         r2 = macroecotools.obs_pred_rsquare(obs_site, pred_site)
-        print site,r2
+        #print site,r2
         r2s.append(r2)
     hist_r2 = np.histogram(r2s, range=(0, 1))
     xvals = hist_r2[1] + (hist_r2[1][1] - hist_r2[1][0])
@@ -678,7 +678,7 @@ def obs_pred_r2_multi(datasets, data_dir='/home/kenlocey/data1/'): # TAKEN FROM 
         obs_pred_data = import_obs_pred_data(data_dir + dataset + '/' + dataset + '_obs_pred.txt') 
         obs = ((obs_pred_data["obs"]))
         pred = ((obs_pred_data["pred"]))
-        print dataset,' ',macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))     
+        #print dataset,' ',macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))     
 
 
 def plot_obs_pred_sad(datasets, data_dir='/home/kenlocey/data1/', radius=2): # TAKEN FROM THE mete_sads.py script used for White et al. (2012) 
@@ -687,6 +687,8 @@ def plot_obs_pred_sad(datasets, data_dir='/home/kenlocey/data1/', radius=2): # T
     """Multiple obs-predicted plotter""" 
     fig = plt.figure()
     I = [1,2,5,6,9,10,13,14]
+    xs = [[60,1], [100,1], [20,1], [60,1], [40,1], [200,1], [800,1.5], [200,1.5]]
+    rs = ['0.93','0.77','0.84','0.81','0.78','0.83','0.58','0.76']
     for i, dataset in enumerate(datasets):
         i = I[i]
         print dataset
@@ -704,19 +706,26 @@ def plot_obs_pred_sad(datasets, data_dir='/home/kenlocey/data1/', radius=2): # T
         plt.xlim(axis_min, axis_max)
         plt.ylim(axis_min, axis_max)
         plt.tick_params(axis='both', which='major', labelsize=8)
+        r2 = 0.8
         plt.subplots_adjust(wspace=0.5, hspace=0.3)
+        plt.text(xs[0][1],xs[0][0],dataset+'\n'+rs[0],fontsize=8)
+        xs.pop(0)
+        rs.pop(0)
         # Create inset for histogram of site level r^2 values
         axins = inset_axes(ax, width="30%", height="30%", loc=4)
         hist_mete_r2(site, np.log10(obs), np.log10(pred))
         plt.setp(axins, xticks=[], yticks=[])
-        
-    plt.savefig('obs_pred_plots.png', dpi=800, bbox_inches = 'tight', pad_inches=0)  
+    
+    plt.text(-8,-80,'Rank-abundance at the centre of the feasible set',fontsize=10)
+    plt.text(-8.5,500,'Observed rank-abundance',rotation='90',fontsize=10)
+    plt.savefig('obs_pred_plots.png', dpi=600)#, bbox_inches = 'tight')#, pad_inches=0)  
        
 
-def pairwise_r2_obs_feasible(datasets): # Figure 4 Locey and White (2013)        ##########################################################################################################
+def pairwise_r2_obs_feasible(datasets): # Figure 4 Locey and White (2013)        
     
     I = [1,2,5,6,9,10,13,14]
     fig = plt.figure()
+    ys = [[7.8,10],[5.4,7],[4,5],[6.5,8],[4,5],[7.7,10],[9.5,12],[9.5,12]]
     for i, dataset in enumerate(datasets):
         ax = fig.add_subplot(4,4,I[i])
         P_errs = []
@@ -731,8 +740,8 @@ def pairwise_r2_obs_feasible(datasets): # Figure 4 Locey and White (2013)       
                 data = open(PATH,'r')
                 macros = set(data.readlines())
                 if len(macros) >= 300:
-                    if len(macros) >= 500:
-                        macros = random.sample(macros,100)
+                    #if len(macros) >= 500:
+                    macros = random.sample(macros,300)
                     r2s = []
                     ct+=1
                     for macro in macros:
@@ -747,18 +756,24 @@ def pairwise_r2_obs_feasible(datasets): # Figure 4 Locey and White (2013)       
                     density._compute_covariance()
                     D = [xs,density(xs)]
                     plt.xlim(0.0, 1.0)
+                    plt.ylim(0.0,ys[0][1])
                     plt.setp(ax, xticks=[0.2,0.4,0.6,0.8,1.0])
                     if dataset == 'FIA' or dataset == 'MCDB':
                         plt.setp(ax, yticks=[0,1,2,3,4])
-                    plt.plot(D[0],D[1],lw=0.5,alpha=0.3)
+                    c = 0.1*random.randrange(1,9)
+                    plt.plot(D[0],D[1],lw=0.5,color=str(c))
                     plt.tick_params(axis='both', which='major', labelsize=8)
+                    
                     data.close()
                 else:data.close()
-        
+        plt.text(0.1,ys[0][0],dataset,fontsize=8)
+        ys.pop(0)
         plt.subplots_adjust(wspace=0.5, hspace=0.3)
         print ct,'usable sites in',dataset
         i+=1
-    plt.savefig('pairwise.png', dpi=800, pad_inches=0)
+    plt.text(-.3,-5,'$R^2$',style='italic')
+    plt.text(-1.9,30,'pdf',rotation='90',style='italic')
+    plt.savefig('pairwise.png', dpi=600,bboxes_inches='tight',pad_inches=0)
     
     
        
@@ -899,8 +914,8 @@ def get_all_SADs(NSlist): # Figure 1 Locey and White (2013)        #############
         ct+=1           
         #plt.ylim(0.0,0.9)
         plt.xlim(-1,8)
-        plt.xlabel("log2(abundance)",fontsize=9)
-        plt.ylabel("frequency",fontsize=9)
+        plt.xlabel("log2(abundance)",fontsize=8)
+        plt.ylabel("frequency",fontsize=8)
         plt.tick_params(axis='both', which='major', labelsize=8)
         plt.setp(ax, xticks=[0,2,4,6,8],yticks=[0.0,0.2,0.4,0.6,0.8])
         leg = plt.legend(loc=1,prop={'size':8})
@@ -934,10 +949,10 @@ def get_all_SADs(NSlist): # Figure 1 Locey and White (2013)        #############
             ct+=1
         
         
-        plt.xlabel("Skewnness",fontsize=9)
+        plt.xlabel("Skewnness",fontsize=8)
         plt.setp(ax, xticks=[-2,0,2,4,6], yticks=[0.2,0.4,0.6,0.8])
         plt.tick_params(axis='both', which='major', labelsize=8)
-        plt.ylabel("pdf",fontsize=9)
+        plt.ylabel("pdf",fontsize=8,style='italic')
         
         leg = plt.legend(loc=1,prop={'size':8})
         leg.draw_frame(False)        
@@ -994,8 +1009,8 @@ def get_all_SADs(NSlist): # Figure 1 Locey and White (2013)        #############
             
         plt.xlim(0,7)
         plt.ylim(0.0,1.0)
-        plt.xlabel("log2(modal abundance)",fontsize=9)
-        plt.ylabel("frequency",fontsize=9)
+        plt.xlabel("log2(modal abundance)",fontsize=8)
+        plt.ylabel("frequency",fontsize=8)
         plt.tick_params(axis='both', which='major', labelsize=8)
         leg = plt.legend(loc=1,prop={'size':8})
         leg.draw_frame(False)
@@ -1004,7 +1019,7 @@ def get_all_SADs(NSlist): # Figure 1 Locey and White (2013)        #############
         
         
     plt.subplots_adjust(wspace=0.35, hspace=0.15)    
-    plt.savefig('/home/kenlocey/MS_Figs/LW2013/Fig1.png', dpi=800, pad_inches=0)   
+    plt.savefig('/home/kenlocey/MS_Figs/LW2013/Fig1.png', dpi=600, pad_inches=0)   
     print 'Fig 1 done'
     
 
@@ -1068,7 +1083,9 @@ def mode_evenness_skew(): # Figure 2 Locey and White (2013)
             if N == Ns[0]: plt.plot(NSratios,MODEs,c='0.7',ls='-',lw=2.5,label= 'N='+str(N))
             if N == Ns[1]: plt.plot(NSratios,MODEs,c='0.35',lw=2.5,label= 'N='+str(N))
             if N == Ns[2]: plt.plot(NSratios,MODEs,c='0.0',lw=2.5,label= 'N='+str(N))
-            plt.xlabel("N/S ratio",fontsize=8)
+            #print N,NSratios
+            #print MODEs
+            plt.xlabel("N/S",fontsize=8)
             plt.ylabel("Avg modal abundance, log2",fontsize=8)
             leg = plt.legend(loc=2,prop={'size':8})
             leg.draw_frame(False)
@@ -1107,7 +1124,7 @@ def mode_evenness_skew(): # Figure 2 Locey and White (2013)
             if N == Ns[0]: plt.plot(NSratios,Evars,c='0.7',ls='-',lw=2.5,label= 'N='+str(N))
             if N == Ns[1]: plt.plot(NSratios,Evars,c='0.35',lw=2.5,label= 'N='+str(N))
             if N == Ns[2]: plt.plot(NSratios,Evars,c='0.0',lw=2.5,label= 'N='+str(N))
-            plt.xlabel("N/S ratio",fontsize=8)
+            plt.xlabel("N/S",fontsize=8)
             plt.ylabel("Avg evenness",fontsize=8)
             leg = plt.legend(loc=1,prop={'size':8})
             leg.draw_frame(False)
@@ -1149,7 +1166,7 @@ def mode_evenness_skew(): # Figure 2 Locey and White (2013)
             if N == Ns[2]: plt.plot(NSratios,SKEWs,c='0.0',lw=2.5,label= 'N='+str(N))
             leg = plt.legend(loc=1,prop={'size':8})
             leg.draw_frame(False)
-            plt.xlabel("N/S ratio",fontsize=8)
+            plt.xlabel("N/S",fontsize=8)
             plt.ylabel("Avg skewnness",fontsize=8)
             #plt.setp(ax, xticks=[2,3,4],yticks=[0.20,0.22,0.24,0.26,0.28,0.30])
             plt.tick_params(axis='both', which='major', labelsize=8)   
@@ -1164,7 +1181,7 @@ def mode_evenness_skew(): # Figure 2 Locey and White (2013)
     avg_skew(fig,Ns)
 
     plt.subplots_adjust(wspace=0.35, hspace=0.35)
-    plt.savefig('/home/kenlocey/MS_Figs/LW2013/Fig2.png', dpi=800, pad_inches=0)    
+    plt.savefig('/home/kenlocey/MS_Figs/LW2013/Fig2.png', dpi=600, pad_inches=0)    
 
 
 
@@ -1445,6 +1462,7 @@ def dataset_NS_combos(NS_combos,dataset): # Figure 5 Locey and White (2013)     
     
     i = 1
     fig = plt.figure()
+    Ys = [4.5, 5.8, 3.0, 4.0, 2.8, 3.5, 3.1, 3.1, 3.1, 3.5, 3.1, 3.1, 3.1, 3.1, 3.1, 3.1]
     for combo in NS_combos:
         ax = fig.add_subplot(4,4,i)
         N = int(combo[0])
@@ -1454,7 +1472,7 @@ def dataset_NS_combos(NS_combos,dataset): # Figure 5 Locey and White (2013)     
         m0 = re.match(r'\A\S*',d).group()
         m2 = int(re.findall(r'\d*\S$',d)[0])
         SAD = [int(m2)]
-        SADs = []
+        obsSADs = []
         
         for d in DATA:
             m1 = re.match(r'\A\S*',d).group()
@@ -1467,14 +1485,14 @@ def dataset_NS_combos(NS_combos,dataset): # Figure 5 Locey and White (2013)     
                 if len(SAD) == S and sum(SAD) == N:
                     SAD.sort()
                     SAD.reverse()
-                    SADs.append(SAD)
+                    obsSADs.append(SAD)
                     
                 SAD = []
                 abundance = int(re.findall(r'\d*\S$',d)[0])
                 if abundance > 0:SAD.append(abundance)
         
         DATA.close()
-        _vector = Evars_sample(SADs) # This can also be berger_parker_sample(), Heips_sample(), mode_sample(), etc.
+        _vector = Evars_sample(obsSADs) # This can also be berger_parker_sample(), Heips_sample(), mode_sample(), etc.
         D = get_kdens(_vector)
         plt.xlim(0.0, 1.0)
         plt.plot(D[0],D[1],color='0.5',lw=3)
@@ -1499,12 +1517,13 @@ def dataset_NS_combos(NS_combos,dataset): # Figure 5 Locey and White (2013)     
                 _numparts+=1
                             
         SADs = [list(x) for x in set(tuple(x) for x in rand_macros)]
-        print N,S,len(SADs)
+        print N,S,len(obsSADs)
         Evars = Evars_sample(SADs)
         D = get_kdens(Evars)
         plt.xlim(0.0, 1.0)
         plt.plot(D[0],D[1],color='k',lw=3) # 
-        
+        plt.text(0.09,Ys[0],'N='+str(N)+'\n'+'S='+str(S)+'\n'+'$n$='+str(len(obsSADs)),fontsize=8)
+        Ys.pop(0)
         maxd = 0.0
         xspot = 0
         d = 0
@@ -1519,7 +1538,9 @@ def dataset_NS_combos(NS_combos,dataset): # Figure 5 Locey and White (2013)     
         
         plt.subplots_adjust(wspace=0.35, hspace=0.35)
         i+=1  
-    plt.savefig('FIA_feasible_vs_obs.png', dpi=800, pad_inches=0)     
+    plt.text(-4.4,15,'pdf',style='italic',fontsize=12,rotation='90')
+    plt.text(-1.9,-2.3,'Evenness, '+'$E_{var}$',fontsize=12)
+    plt.savefig('FIA_feasible_vs_obs.png', dpi=600, pad_inches=0)     
     
 
 
@@ -1712,5 +1733,3 @@ def get_random_macrostates_data(NS_combo):
         	            
     rand_macros = [list(x) for x in set(tuple(x) for x in rand_macros)]
     return rand_macros    
-
-    
