@@ -5,6 +5,8 @@ import csv
 import sys
 sys.path.append("/home/kenlocey/modules/pymods")
 import macroecotools
+sys.path.append("/home/kenlocey/modules/partitions")
+import partitions as parts
 import os
 from os import path, access, R_OK  # W_OK for write permission
 import  matplotlib.pyplot as plt
@@ -191,6 +193,15 @@ def get_skews(_list):
     return skews
 
 
+def min_max(n,s):
+    
+    _min = int(floor(float(n)/float(s)))
+    if int(n%s) > 0:
+        _min +=1
+    
+    return _min
+
+
 def get_modes(_list,which):
 
     modes = []
@@ -238,8 +249,8 @@ def get_kdens(_list):
     """ Finds the kernel density function across a sample of SADs """
     density = gaussian_kde(_list)
     n = len(_list)
-    xs = np.linspace(min(_list),max(_list),n)
-    #xs = np.linspace(0.0,1.0,n)
+    #xs = np.linspace(min(_list),max(_list),n)
+    xs = np.linspace(0.0,1.0,n)
     density.covariance_factor = lambda : 0.5
     density._compute_covariance()
     D = [xs,density(xs)]
@@ -264,7 +275,7 @@ def get_expSADs_fromfile(dataset):
         
         for d in DATA:
             ct1+=1
-            m1 = re.match(r'\A\S*',d).group()
+            m1 = re.match(r'\S*',d).group()
             if m1 == m0:
                 m2 = int(re.findall(r'\d*\S$',d)[0])
                 if m2 > 0:SAD.append(m2)
@@ -285,7 +296,7 @@ def get_expSADs_fromfile(dataset):
 
 def get_SADs(dataset):
 
-    DATA = open('/home/kenlocey/data/' + dataset + '/' + dataset + '-data.txt','r')
+    DATA = open('/home/kenlocey/data1/' + dataset + '/' + dataset + '-data.txt','r')
     ct1 = 0
     ct2 = 0
     d = DATA.readline()
@@ -381,6 +392,13 @@ def get_all_partitions(N,S):
 ########################################################################################################
 ######   A Section devoted to finding macrostates/integer partitions ############################
 
+#def get_random_macrostates(NS_combo): # This function call rand_parts (derived by KJL), a function
+#    # that finds random macrostates much faster than Sage. Not used for Locey and White (2013).
+#    N = int(NS_combo[0])
+#    S = int(NS_combo[1])
+#    sample_size = 63
+#    return parts.rand_parts1(N,S,sample_size)
+
 def get_random_macrostates(NS_combo):    
     N = int(NS_combo[0])
     S = int(NS_combo[1])
@@ -417,19 +435,21 @@ def get_rand_sample(NS_combo): #choose between worker2 (random partitioning alg 
 
 
 def get_random_macrostates_for_NScombos(NS_combos):    
+    print NS_combos
     random.shuffle(NS_combos)
     while NS_combos:
         ct = 0
         for NS_combo in NS_combos:
-            print len(NS_combos),'NS combinations left'
             ct+=1
             N = int(NS_combo[0])
             S = int(NS_combo[1])
+            #print len(NS_combos),N,S,'NS combinations left'
             p = float(number_of_partitions(N,S))/float(number_of_partitions(N))
-            if p > 0.01:
+            if p > 0.0:
+                
                 OUT = open('/home/kenlocey/combined1/' + str(N) + '-' + str(S) + '.txt','a+')
                 macros = len(set(OUT.readlines()))
-            
+                
                 if macros < 400 and macros != number_of_partitions(N,S):
                     rand_macros = get_rand_sample(NS_combo) # Use multiprocessing
                     for i in rand_macros:
@@ -473,7 +493,7 @@ def get_common_combos1(datasets):
     print 'number of unique N-S combos:',len(common_combos),'  number of sites:',n
 
 
-def get_common_combos2(datasets,Nmin,Ndiff,Sdiff):
+def get_common_combos2(datasets,Nmin,Ndiff,Sdiff,sampsize):
     
     combos = get_NS_combos_labels(datasets)
     unique_NS_combos = combos[0]
@@ -491,7 +511,7 @@ def get_common_combos2(datasets,Nmin,Ndiff,Sdiff):
                         _list.append(combo2[2])
         
         u_list = list(set(_list))
-        if len(u_list) >= 1 and ct > 40:
+        if len(u_list) >= 1 and ct >= sampsize:
             ct3+=1
             print combo1,' ',ct,' ',len(u_list),u_list
             common_combos.append([combo1[0],combo1[1],ct,u_list])                        
@@ -557,13 +577,14 @@ def generate_obs_pred_data(datasets):
         
         """ To prevent the script from tripping on the last line, make the last line of the datafile any sequence of non-data
             related alphanumeric characters (i.e. 0X0)
-        """    
-        OUT1 = open('/home/kenlocey/data/'+dataset+'/'+ dataset + '_obs_pred.txt','w')
+        """
+        
+        OUT1 = open('/home/kenlocey/data1/'+dataset+'/'+ dataset + '_obs_pred.txt','w')
         OUT1.close()
-        DATA = open('/home/kenlocey/data/'+dataset+'/'+ dataset + '-data.txt','r')
+        DATA = open('/home/kenlocey/data1/'+dataset+'/'+ dataset + '-data.txt','r')
         d = DATA.readline()
         m0 = re.match(r'\A\S*',d).group()
-        m2 = int(re.findall(r'\d*\S$',d)[0])
+        m2 = int(re.findall(r'\d\S*$',d)[0])
         SAD = [int(m2)]
         SADs = []
         
@@ -582,6 +603,7 @@ def generate_obs_pred_data(datasets):
                 abundance = int(re.findall(r'\d*\S$',d)[0])
                 if abundance > 0:
                     SAD.append(abundance)
+        
         print dataset,len(SADs)
         num = 0
         for site in SADs:
@@ -617,7 +639,7 @@ def generate_obs_pred_data(datasets):
                 #print dataset,N,S,site_name,r2,' ',berger_parker(SAD),berger_parker(expSAD),' ',simplest_gini(SAD),simplest_gini(expSAD),' ',e_var(SAD),e_var(expSAD) 
                 
                 ct = 0
-                OUT1 = open('/home/kenlocey/data/'+dataset+'/'+ dataset + '_obs_pred.txt','a')                       # use 'data' for data and 'data' for anything else
+                OUT1 = open('/home/kenlocey/data1/'+dataset+'/'+ dataset + '_obs_pred.txt','a')                       # use 'data' for data and 'data' for anything else
                 while ct < len(expSAD): # write to file, by cite, observed and expected ranked abundances
                     print>>OUT1, site_name,SAD[ct],expSAD[ct]
                     ct += 1
@@ -640,7 +662,7 @@ def hist_mete_r2(sites, obs, pred):  # TAKEN FROM Macroecotools or the mete_sads
         obs_site = obs[sites==site]
         pred_site = pred[sites==site]
         r2 = macroecotools.obs_pred_rsquare(obs_site, pred_site)
-        print site,r2
+        #print site,r2
         r2s.append(r2)
     hist_r2 = np.histogram(r2s, range=(0, 1))
     xvals = hist_r2[1] + (hist_r2[1][1] - hist_r2[1][0])
@@ -649,21 +671,26 @@ def hist_mete_r2(sites, obs, pred):  # TAKEN FROM Macroecotools or the mete_sads
     plt.plot(xvals, yvals, 'k-', linewidth=2)
     plt.axis([0, 1, 0, 1.1 * max(yvals)])
     
-        
-
-def obs_pred_r2_multi(datasets, data_dir='/home/kenlocey/data/'): # TAKEN FROM THE mete_sads.py script
+    
+def obs_pred_r2_multi(datasets, data_dir='/home/kenlocey/data1/'): # TAKEN FROM THE mete_sads.py script
     print 'generating 1:1 line R-square values for dataset(s)' 
     for i, dataset in enumerate(datasets):
         obs_pred_data = import_obs_pred_data(data_dir + dataset + '/' + dataset + '_obs_pred.txt') 
         obs = ((obs_pred_data["obs"]))
         pred = ((obs_pred_data["pred"]))
-        print dataset,' ',macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))     
+        #print dataset,' ',macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))     
 
 
-def plot_obs_pred_sad(datasets, data_dir='/home/kenlocey/data/', radius=2): # TAKEN FROM THE mete_sads.py script used for White et al. (2012)
+def plot_obs_pred_sad(datasets, data_dir='/home/kenlocey/data1/', radius=2): # TAKEN FROM THE mete_sads.py script used for White et al. (2012) 
+    # Figure 3 Locey and White (2013)        ##########################################################################################################
+    
     """Multiple obs-predicted plotter""" 
     fig = plt.figure()
+    I = [1,2,5,6,9,10,13,14]
+    xs = [[60,1], [100,1], [20,1], [60,1], [40,1], [200,1], [800,1.5], [200,1.5]]
+    rs = ['0.93','0.77','0.84','0.81','0.78','0.83','0.58','0.76']
     for i, dataset in enumerate(datasets):
+        i = I[i]
         print dataset
         obs_pred_data = import_obs_pred_data(data_dir + dataset + '/' + dataset + '_obs_pred.txt') 
         site = ((obs_pred_data["site"]))
@@ -672,23 +699,84 @@ def plot_obs_pred_sad(datasets, data_dir='/home/kenlocey/data/', radius=2): # TA
         
         axis_min = 0.5 * min(obs)
         axis_max = 2 * max(obs)
-        ax = fig.add_subplot(2,3,i+1) 
+        ax = fig.add_subplot(4,4,i+1) 
         macroecotools.plot_color_by_pt_dens(pred, obs, radius, loglog=1, 
-                                            plot_obj=plt.subplot(2,3,i+1))      
+                                            plot_obj=plt.subplot(4,4,i+1))      
         plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
         plt.xlim(axis_min, axis_max)
         plt.ylim(axis_min, axis_max)
-        #plt.subplots_adjust(left=0.2, bottom=0.12, right=0.8, top=0.92, wspace=0.29, hspace=0.21)  
+        plt.tick_params(axis='both', which='major', labelsize=8)
+        r2 = 0.8
         plt.subplots_adjust(wspace=0.5, hspace=0.3)
+        plt.text(xs[0][1],xs[0][0],dataset+'\n'+rs[0],fontsize=8)
+        xs.pop(0)
+        rs.pop(0)
         # Create inset for histogram of site level r^2 values
         axins = inset_axes(ax, width="30%", height="30%", loc=4)
         hist_mete_r2(site, np.log10(obs), np.log10(pred))
         plt.setp(axins, xticks=[], yticks=[])
-        
-    plt.savefig(dataset + 'obs_pred_plots.png', dpi=800, bbox_inches = 'tight', pad_inches=0)  
+    
+    plt.text(-8,-80,'Rank-abundance at the centre of the feasible set',fontsize=10)
+    plt.text(-8.5,500,'Observed rank-abundance',rotation='90',fontsize=10)
+    plt.savefig('obs_pred_plots.png', dpi=600)#, bbox_inches = 'tight')#, pad_inches=0)  
        
 
-   
+def pairwise_r2_obs_feasible(datasets): # Figure 4 Locey and White (2013)        
+    
+    I = [1,2,5,6,9,10,13,14]
+    fig = plt.figure()
+    ys = [[7.8,10],[5.4,7],[4,5],[6.5,8],[4,5],[7.7,10],[9.5,12],[9.5,12]]
+    for i, dataset in enumerate(datasets):
+        ax = fig.add_subplot(4,4,I[i])
+        P_errs = []
+        SADs = get_SADs(dataset)
+        ct = 0
+
+        for SAD in SADs:
+            N = sum(SAD)
+            S = len(SAD)
+            PATH = '/home/kenlocey/combined1/' + str(N) + '-' + str(S) + '.txt'
+            if path.exists(PATH) and path.isfile(PATH) and access(PATH, R_OK):
+                data = open(PATH,'r')
+                macros = set(data.readlines())
+                if len(macros) >= 300:
+                    #if len(macros) >= 500:
+                    macros = random.sample(macros,300)
+                    r2s = []
+                    ct+=1
+                    for macro in macros:
+                        macro = eval(macro)
+                        r2 = macroecotools.obs_pred_rsquare(np.log10(SAD),np.log10(macro)) # r-squared for the 1:1 line (obs vs. exp) 
+                        r2s.append(r2)
+                        
+                    density = gaussian_kde(r2s)
+                    n = len(r2s)
+                    xs = np.linspace(0.0,1.0,n)
+                    density.covariance_factor = lambda : .5
+                    density._compute_covariance()
+                    D = [xs,density(xs)]
+                    plt.xlim(0.0, 1.0)
+                    plt.ylim(0.0,ys[0][1])
+                    plt.setp(ax, xticks=[0.2,0.4,0.6,0.8,1.0])
+                    if dataset == 'FIA' or dataset == 'MCDB':
+                        plt.setp(ax, yticks=[0,1,2,3,4])
+                    c = 0.1*random.randrange(1,9)
+                    plt.plot(D[0],D[1],lw=0.5,color=str(c))
+                    plt.tick_params(axis='both', which='major', labelsize=8)
+                    
+                    data.close()
+                else:data.close()
+        plt.text(0.1,ys[0][0],dataset,fontsize=8)
+        ys.pop(0)
+        plt.subplots_adjust(wspace=0.5, hspace=0.3)
+        print ct,'usable sites in',dataset
+        i+=1
+    plt.text(-.3,-5,'$R^2$',style='italic')
+    plt.text(-1.9,30,'pdf',rotation='90',style='italic')
+    plt.savefig('pairwise.png', dpi=600,bboxes_inches='tight',pad_inches=0)
+    
+    
+       
 def kdens_full_feasibles(N,S):
     """ Plot kernel density curves of Evar for macrostates of feasible sets
         based on different N and S """
@@ -775,22 +863,76 @@ def get_all_SADs(NSlist): # Figure 1 Locey and White (2013)        #############
     i = 1
     fig = plt.figure()
     for _list in NSlist:
-        print i
+        
         N = _list[0]
         Slist = _list[1]
-        if N > 10:
-            for S in Slist:
-                get_random_macrostates_for_NScombos([[N,S]])
+        S = Slist[1]  
+        #    for S in Slist:
+        #        get_random_macrostates_for_NScombos([[N,S]])
         
         ct = 0
         ax = fig.add_subplot(3,3,i)
+        clr = '0.35'
+        parts = []
+        PATH = '/home/kenlocey/combined1/'+str(N)+'-'+str(S)+'.txt'
+        data = open(PATH,'r')
+        macrostates = data.readlines()
+        for macrostate in macrostates:
+            part = eval(macrostate)
+            parts.append(part)
+        data.close()
+        
+        if len(parts) > 500: parts = random.sample(parts,500)
+          
+        for part in parts:
+            
+            x = [0,1,2,3,4,5,6,7,8,9]
+            y = [0]*10
+            for p in part:
+                if p >= 512: y[9]+=1
+                elif p >= 256: y[8]+=1
+                elif p >= 128: y[7]+=1
+                elif p >= 64: y[6]+=1
+                elif p >= 32: y[5]+=1
+                elif p >= 16: y[4]+=1
+                elif p >= 8: y[3]+=1
+                elif p >= 4: y[2]+=1
+                elif p >= 2: y[1]+=1
+                elif p == 1: y[0]+=1
+                
+            Y = [0]*10
+            cty = 0
+            for g in y:
+                if cty > 0: Y[cty] = (float(g)/float(sum(y)))/(2**cty - 2**(cty-1))
+                else: Y[cty] = float(g)/float(sum(y))
+                cty += 1
+                
+            
+            plt.bar(x,Y, color=clr, linewidth=0, align='center', alpha = 0.01)
+                
+        plt.bar([0],[0], color=clr, linewidth=0, align='center', label= 'S='+str(S))      
+        ct+=1           
+        #plt.ylim(0.0,0.9)
+        plt.xlim(-1,8)
+        plt.xlabel("log2(abundance)",fontsize=8)
+        plt.ylabel("frequency",fontsize=8)
+        plt.tick_params(axis='both', which='major', labelsize=8)
+        plt.setp(ax, xticks=[0,2,4,6,8],yticks=[0.0,0.2,0.4,0.6,0.8])
+        leg = plt.legend(loc=1,prop={'size':8})
+        leg.draw_frame(False)
+          
+        i+=1
+        
+        ct = 0
+        ax = fig.add_subplot(3,3,i)
+        
         for S in Slist:
             clr = 0
-            if ct == 0: clr= '#1E90FF' #blue 
-            elif ct == 1: clr= '0.35'  #grey
-            elif ct == 2: clr= '#FF34B3' #red
+            if ct == 0: clr= '0.0'     #'#1E90FF' #blue 
+            elif ct == 1: clr= '0.75'  #grey
+            elif ct == 2: clr= '0.5'   #FF34B3' #red
             
-            if N > 10:
+            if N > 60:
                 parts = []
                 PATH = '/home/kenlocey/combined1/'+str(N)+'-'+str(S)+'.txt'
                 data = open(PATH,'r')
@@ -803,24 +945,30 @@ def get_all_SADs(NSlist): # Figure 1 Locey and White (2013)        #############
                 parts = get_all_partitions(N,S)
             skews = get_skews(parts)
             D = get_kdens_choose_kernel(skews,0.5)
-            plt.plot(D[0],D[1],color = clr,lw=3, alpha = 0.99)
+            plt.plot(D[0],D[1],color = clr,lw=3, alpha = 0.99,label= 'S='+str(S))
             ct+=1
-        plt.setp(ax, xticks=[-2,0,2,4,6], yticks=[0.2,0.4,0.6])
-        plt.tick_params(axis='both', which='major', labelsize=7)
-        plt.xlabel("Skewnness",fontsize=10)
-        plt.ylabel("pdf",fontsize=10)
+        
+        
+        plt.xlabel("Skewnness",fontsize=8)
+        plt.setp(ax, xticks=[-2,0,2,4,6], yticks=[0.2,0.4,0.6,0.8])
+        plt.tick_params(axis='both', which='major', labelsize=8)
+        plt.ylabel("pdf",fontsize=8,style='italic')
+        
+        leg = plt.legend(loc=1,prop={'size':8})
+        leg.draw_frame(False)        
         i+=1
         
         
         ct = 0
         ax = fig.add_subplot(3,3,i)
+        
         for S in Slist:
             clr = 0
-            if ct == 0: clr= '#1E90FF' #blue 
-            elif ct == 1: clr= '0.35'  #grey
-            elif ct == 2: clr= '#FF34B3' #red
+            if ct == 0: clr= '0.0'     #'#1E90FF' #blue 
+            elif ct == 1: clr= '0.75'  #grey
+            elif ct == 2: clr= '0.5'   #FF34B3' #red
             macros = []
-            if N > 10:
+            if N > 60:
                 PATH = '/home/kenlocey/combined1/'+str(N)+'-'+str(S)+'.txt'
                 data = open(PATH,'r')
                 macrostates = data.readlines()
@@ -840,83 +988,204 @@ def get_all_SADs(NSlist): # Figure 1 Locey and White (2013)        #############
             for m in modes:
                 if m == 1: y[0]+=1
                 elif m == 2: y[1]+=1
-                elif m <= 4: y[2]+=1
-                elif m <= 8: y[3]+=1
-                elif m <= 16: y[4]+=1
-                elif m <= 32: y[5]+=1
-                elif m <= 64: y[6]+=1
-                elif m <= 128: y[7]+=1
-                elif m <= 256: y[8]+=1
-                elif m <= 512: y[9]+=1
+                elif m == 3: y[2]+=1
+                elif m == 4: y[3]+=1
+                elif m == 5: y[4]+=1
+                elif m == 6: y[5]+=1
+                elif m == 7: y[6]+=1
+                elif m == 8: y[7]+=1
+                elif m == 9: y[8]+=1
+                elif m == 10: y[9]+=1
             
             Y = [0]*10
             cty = 0
             for g in y:
-                Y[cty] = float(g)/float(sum(y))
+                if cty > 0: Y[cty] = (float(g)/float(sum(y)))/(2**cty - 2**(cty-1))
+                else: Y[cty] = float(g)/float(sum(y))
                 cty += 1
             
-            plt.plot(x,Y,'-o',color=clr, lw=2) #label= 'N='+str(N)+' S='+str(S)
+            plt.plot(x,Y,'-',color=clr, lw=3,label= 'S='+str(S))
             ct+=1
             
-        plt.xlim(-1.0,7)
-        #plt.ylim(0,0.3)
-        #plt.yscale('log')
-        plt.xlabel("log2(modal abundance)",fontsize=10)
-        plt.ylabel("frequency",fontsize=10)
-        plt.tick_params(axis='both', which='major', labelsize=7)
-        #plt.legend(loc=1,prop={'size':8})
+        plt.xlim(0,7)
+        plt.ylim(0.0,1.0)
+        plt.xlabel("log2(modal abundance)",fontsize=8)
+        plt.ylabel("frequency",fontsize=8)
+        plt.tick_params(axis='both', which='major', labelsize=8)
+        leg = plt.legend(loc=1,prop={'size':8})
+        leg.draw_frame(False)
         plt.setp(ax, xticks=[0,1,2,3,4,5,6,7])
         i+=1
         
         
-        ct = 0
-        ax = fig.add_subplot(3,3,i)
-        for S in Slist:
-            clr = 0
-            if ct == 0: clr= '#1E90FF' #blue 
-            elif ct == 1: clr= '0.35'  #grey
-            elif ct == 2: clr= '#FF34B3' #red
-            parts = []
-            PATH = '/home/kenlocey/combined1/'+str(N)+'-'+str(S)+'.txt'
-            data = open(PATH,'r')
-            macrostates = data.readlines()
-            for macrostate in macrostates:
-                part = eval(macrostate)
-                parts.append(part)
-            data.close()
+    plt.subplots_adjust(wspace=0.35, hspace=0.15)    
+    plt.savefig('/home/kenlocey/MS_Figs/LW2013/Fig1.png', dpi=600, pad_inches=0)   
+    print 'Fig 1 done'
+    
+
+def mode_evenness_skew(): # Figure 2 Locey and White (2013)
+
+    def mode1(macro):
+
+        x = [0,1,2,3,4,5,6,7,8,9]
+        y = [0]*10
+        for p in macro:
+            if p >= 512: y[9]+=1
+            elif p >= 256: y[8]+=1
+            elif p >= 128: y[7]+=1
+            elif p >= 64: y[6]+=1
+            elif p >= 32: y[5]+=1
+            elif p >= 16: y[4]+=1
+            elif p >= 8: y[3]+=1
+            elif p >= 4: y[2]+=1
+            elif p >= 2: y[1]+=1
+            elif p == 1: y[0]+=1
             
-            if ct == 0 or ct == 2: plt.bar([0],[0], color=clr, linewidth=0, label= 'N='+str(N)+' S='+str(S))
-            if ct == 1:
-                for part in parts:
-                    x = [0,1,2,3,4,5,6,7,8,9]
-                    y = [0]*10
-                    for p in part:
-                        if p >= 512: y[9]+=1
-                        elif p >= 256: y[8]+=1
-                        elif p >= 128: y[7]+=1
-                        elif p >= 64: y[6]+=1
-                        elif p >= 32: y[5]+=1
-                        elif p >= 16: y[4]+=1
-                        elif p >= 8: y[3]+=1
-                        elif p >= 4: y[2]+=1
-                        elif p >= 2: y[1]+=1
-                        elif p == 1: y[0]+=1
-                    plt.bar(x,y, color=clr, linewidth=0, align='center', alpha = 0.07)
-                plt.bar([0],[0], color=clr, linewidth=0, align='center', label= 'N='+str(N)+' S='+str(S))      
-            ct+=1           
-            plt.xlim(-1,8)
-            plt.xlabel("log2(abundance)",fontsize=10)
-            plt.ylabel("frequency",fontsize=10)
-            plt.tick_params(axis='both', which='major', labelsize=7)
-            plt.setp(ax, xticks=[0,2,4,6,8])
-            plt.legend(loc=1,prop={'size':7})
-        i+=1
+        Y = [0]*10
+        cty = 0
+        for g in y:
+            if cty > 0: Y[cty] = (float(g)/float(sum(y)))/(2**cty - 2**(cty-1))
+            else: Y[cty] = float(g)/float(sum(y))
+            cty += 1
         
-    plt.subplots_adjust(wspace=0.35, hspace=0.35)    
-    plt.savefig('Fig1-'+str(N)+'-'+str(S)+'.png', dpi=400, pad_inches=0)
-    print 'done'
+        return 2**int(np.argmax(Y))
+
     
     
+    def avg_mode(fig,Ns):
+        ax = plt.subplot2grid((3,3), (0,0), rowspan=1,colspan=1)
+     
+        sample_size = 300
+    
+        for N in Ns:
+            NSratios = []
+            MODEs = []
+            s = int(N/10)
+            Ss = [s,s*2,s*3,s*4,s*5,s*6,s*7,s*8,s*9,(s*10)-10]
+        
+            for S in Ss:
+                NSratios.append(float(N)/S)
+                
+                get_random_macrostates_for_NScombos([[N,S]])
+                OUT = open('/home/kenlocey/combined1/' + str(N) + '-' + str(S) + '.txt','r')
+                partitions = OUT.readlines()
+                OUT.close()
+                
+                modes = []
+                for p in partitions:
+                    p = eval(p)
+                    _mode = mode1(p)
+                    modes.append(_mode)
+            
+                MODE = mean(modes)
+                MODEs.append(MODE)
+        
+            if N == Ns[0]: plt.plot(NSratios,MODEs,c='0.7',ls='-',lw=2.5,label= 'N='+str(N))
+            if N == Ns[1]: plt.plot(NSratios,MODEs,c='0.35',lw=2.5,label= 'N='+str(N))
+            if N == Ns[2]: plt.plot(NSratios,MODEs,c='0.0',lw=2.5,label= 'N='+str(N))
+            #print N,NSratios
+            #print MODEs
+            plt.xlabel("N/S",fontsize=8)
+            plt.ylabel("Avg modal abundance, log2",fontsize=8)
+            leg = plt.legend(loc=2,prop={'size':8})
+            leg.draw_frame(False)
+            #plt.setp(ax, xticks=[2,3,4],yticks=[0.20,0.22,0.24,0.26,0.28,0.30])
+            plt.tick_params(axis='both', which='major', labelsize=8)   
+    
+        print 'done subplot 1'
+        return
+  
+    def avg_evenness(fig,Ns):
+        ax = plt.subplot2grid((3,3), (0,1), rowspan=1,colspan=1)
+     
+        sample_size = 300
+        
+        for N in Ns:
+            NSratios = []
+            Evars = []
+            S = N/10
+            Ss = [S,S*2,S*3,S*4,S*5,S*6,S*7,S*8,S*9,(S*10)-10]
+        
+            for S in Ss:
+                NSratios.append(float(N)/S)
+                
+                get_random_macrostates_for_NScombos([[N,S]])
+                OUT = open('/home/kenlocey/combined1/' + str(N) + '-' + str(S) + '.txt','r')
+                partitions = OUT.readlines()
+                OUT.close()
+                
+                _sum = 0
+                for p in partitions:
+                    p = eval(p)
+                    _sum += e_var(list(p))
+                Evar = float(_sum)/len(partitions)
+                Evars.append(Evar)
+        
+            if N == Ns[0]: plt.plot(NSratios,Evars,c='0.7',ls='-',lw=2.5,label= 'N='+str(N))
+            if N == Ns[1]: plt.plot(NSratios,Evars,c='0.35',lw=2.5,label= 'N='+str(N))
+            if N == Ns[2]: plt.plot(NSratios,Evars,c='0.0',lw=2.5,label= 'N='+str(N))
+            plt.xlabel("N/S",fontsize=8)
+            plt.ylabel("Avg evenness",fontsize=8)
+            leg = plt.legend(loc=1,prop={'size':8})
+            leg.draw_frame(False)
+            plt.setp(ax, yticks=[0.5,0.6,0.7,0.8,0.9,1.0])
+            plt.tick_params(axis='both', which='major', labelsize=8)   
+    
+        print 'done subplot 2'
+        return
+    
+    
+    def avg_skew(fig, Ns):
+        ax = plt.subplot2grid((3,3), (0,2), rowspan=1,colspan=1)
+     
+        sample_size = 300
+     
+        for N in Ns:
+            NSratios = []
+            SKEWs = []
+            S = N/10
+            Ss = [S,S*2,S*3,S*4,S*5,S*6,S*7,S*8,S*9,(S*10)-10]
+        
+            for S in Ss:
+                NSratios.append(float(N)/S)
+                
+                get_random_macrostates_for_NScombos([[N,S]])
+                OUT = open('/home/kenlocey/combined1/' + str(N) + '-' + str(S) + '.txt','r')
+                partitions = OUT.readlines()
+                OUT.close()
+            
+                _sum = 0
+                for p in partitions:
+                    p = eval(p)
+                    _sum += stats.skew(list(p))
+                SKEW = float(_sum)/len(partitions)
+                SKEWs.append(SKEW)
+        
+            if N == Ns[0]: plt.plot(NSratios,SKEWs,c='0.7',ls='-',lw=2.5,label= 'N='+str(N))
+            if N == Ns[1]: plt.plot(NSratios,SKEWs,c='0.35',lw=2.5,label= 'N='+str(N))
+            if N == Ns[2]: plt.plot(NSratios,SKEWs,c='0.0',lw=2.5,label= 'N='+str(N))
+            leg = plt.legend(loc=1,prop={'size':8})
+            leg.draw_frame(False)
+            plt.xlabel("N/S",fontsize=8)
+            plt.ylabel("Avg skewnness",fontsize=8)
+            #plt.setp(ax, xticks=[2,3,4],yticks=[0.20,0.22,0.24,0.26,0.28,0.30])
+            plt.tick_params(axis='both', which='major', labelsize=8)   
+    
+        print 'done subplot 3'
+        return
+    
+    Ns = [50,100,200]
+    fig = plt.figure()
+    avg_mode(fig,Ns)
+    avg_evenness(fig,Ns)    
+    avg_skew(fig,Ns)
+
+    plt.subplots_adjust(wspace=0.35, hspace=0.35)
+    plt.savefig('/home/kenlocey/MS_Figs/LW2013/Fig2.png', dpi=600, pad_inches=0)    
+
+
+
+   
 def plot_obs_exp_evenness(datasets):
     fig = plt.figure()
     i = 0
@@ -940,7 +1209,7 @@ def plot_obs_exp_evenness(datasets):
                 macros = set(data.readlines())
                 if len(macros) >= 100:
                     if len(macros) > 500:
-                        macros = random.sample(macros,50)
+                        macros = random.sample(macros,500)
                     OBS_evar.append(e_var(SAD))
                     OBS_E.append(simpsons_evenness(SAD))
 
@@ -1006,6 +1275,69 @@ def plot_obs_exp_evenness(datasets):
     plt.savefig('obsEVEN_expEVEN_plots.png', dpi=400, bbox_inches = 'tight', pad_inches=0.1)  
         
         
+ 
+    
+def get_500_RADs(NS_combos): 
+    
+    i = 1
+    fig = plt.figure()
+    for combo in NS_combos:
+        
+        ax = fig.add_subplot(2,2,i)
+        N = int(combo[0])
+        S = int(combo[1])
+        ct = 0
+        SADs = []
+        while ct < 500:
+            macro = Partitions(N).random_element()
+            if len(macro) == S:
+                ct+=1
+                SADs.append(list(macro))
+                (bins, n) = histOutline(list(macro))
+                plt.plot(bins, n, 'k-',lw=1,alpha=0.05)
+                
+        exp_SAD = get_hottest_SAD(SADs)        
+        (bins, n) = histOutline(exp_SAD)
+        plt.plot(bins, n, 'r-',lw=2)
+        if S == 10:
+            plt.setp(ax,xticks=[1,10,20,30],yticks=[5,10])
+            plt.ylim(0,10)
+            plt.xlim(0,30)
+        if S == 20 and N == 60:
+            plt.setp(ax,xticks=[1,5,15,25],yticks=[5,10,15,20])
+            plt.ylim(0,20)
+            plt.xlim(0,25)
+        if S == 20 and N == 50:
+            plt.setp(ax,xticks=[1,5,10,15,20],yticks=[5,10,15,20])
+            plt.ylim(0,20)
+            plt.xlim(0,20)    
+        if S == 30:
+            plt.setp(ax,xticks=[1,10,20,30],yticks=[10,20,30])
+            plt.ylim(0,30)
+            plt.xlim(0,25)
+        #locs,labels = xticks()
+        #xticks(locs, map(lambda x: int(x+1), locs))
+        plt.subplots_adjust(left=0.2, bottom=0.12, right=0.8, top=0.92, wspace=0.29, hspace=0.21)  
+                
+        # Create inset for Evar
+        axins = inset_axes(ax, width="50%", height="50%", loc=1)
+        expEvar = e_var(exp_SAD)
+        plt.axvline(x=expEvar,ymin=0,ymax=10,color='red',ls='--',lw=1.5)
+        D = get_kdens_obs(SADs)
+        plt.xlim(0.0, 1.0)
+        plt.plot(D[0],D[1],color='black',lw=3.8)
+        D = get_kdens(N,S)
+        plt.xlim(0.0, 1.0)
+        plt.plot(D[0],D[1],color='red',lw=1.3)
+        plt.setp(axins, xticks=[0.2,0.8], yticks=[])
+        
+        i+=1
+        print 'finished:'+str(N)+' '+str(S)
+        
+    plt.savefig('Figure4.png', dpi=400, pad_inches=0)
+
+
+
 def plot_percentile(datasets):
     fig = plt.figure()
     i = 1
@@ -1123,83 +1455,24 @@ def plot_percentile(datasets):
     plt.savefig('percentile.png', dpi=800, bbox_inches = 'tight', pad_inches=0.1)  
     
     
-def get_500_RADs(NS_combos): 
-    
-    i = 1
-    fig = plt.figure()
-    for combo in NS_combos:
         
-        ax = fig.add_subplot(2,2,i)
-        N = int(combo[0])
-        S = int(combo[1])
-        ct = 0
-        SADs = []
-        while ct < 500:
-            macro = Partitions(N).random_element()
-            if len(macro) == S:
-                ct+=1
-                SADs.append(list(macro))
-                (bins, n) = histOutline(list(macro))
-                plt.plot(bins, n, 'k-',lw=1,alpha=0.05)
-                
-        exp_SAD = get_hottest_SAD(SADs)        
-        (bins, n) = histOutline(exp_SAD)
-        plt.plot(bins, n, 'r-',lw=2)
-        if S == 10:
-            plt.setp(ax,xticks=[1,10,20,30],yticks=[5,10])
-            plt.ylim(0,10)
-            plt.xlim(0,30)
-        if S == 20 and N == 60:
-            plt.setp(ax,xticks=[1,5,15,25],yticks=[5,10,15,20])
-            plt.ylim(0,20)
-            plt.xlim(0,25)
-        if S == 20 and N == 50:
-            plt.setp(ax,xticks=[1,5,10,15,20],yticks=[5,10,15,20])
-            plt.ylim(0,20)
-            plt.xlim(0,20)    
-        if S == 30:
-            plt.setp(ax,xticks=[1,10,20,30],yticks=[10,20,30])
-            plt.ylim(0,30)
-            plt.xlim(0,25)
-        #locs,labels = xticks()
-        #xticks(locs, map(lambda x: int(x+1), locs))
-        plt.subplots_adjust(left=0.2, bottom=0.12, right=0.8, top=0.92, wspace=0.29, hspace=0.21)  
-                
-        # Create inset for Evar
-        axins = inset_axes(ax, width="50%", height="50%", loc=1)
-        expEvar = e_var(exp_SAD)
-        plt.axvline(x=expEvar,ymin=0,ymax=10,color='red',ls='--',lw=1.5)
-        D = get_kdens_obs(SADs)
-        plt.xlim(0.0, 1.0)
-        plt.plot(D[0],D[1],color='black',lw=3.8)
-        D = get_kdens(N,S)
-        plt.xlim(0.0, 1.0)
-        plt.plot(D[0],D[1],color='red',lw=1.3)
-        plt.setp(axins, xticks=[0.2,0.8], yticks=[])
-        
-        i+=1
-        print 'finished:'+str(N)+' '+str(S)
-        
-    plt.savefig('Figure4.png', dpi=400, pad_inches=0)
-
-
-    
-def dataset_NS_combos(NS_combos,dataset):
+def dataset_NS_combos(NS_combos,dataset): # Figure 5 Locey and White (2013)        ##########################################################################################################
     """ Plot kernel density curves of species evenness for macrostates of feasible sets
         based on different N and S """
     
     i = 1
     fig = plt.figure()
+    Ys = [4.5, 5.8, 3.0, 4.0, 2.8, 3.5, 3.1, 3.1, 3.1, 3.5, 3.1, 3.1, 3.1, 3.1, 3.1, 3.1]
     for combo in NS_combos:
         ax = fig.add_subplot(4,4,i)
         N = int(combo[0])
         S = int(combo[1])
-        DATA = open('/home/kenlocey/data/' + dataset + '/' + dataset + '-data.txt','r')
+        DATA = open('/home/kenlocey/data1/' + dataset + '/' + dataset + '-data.txt','r')
         d = DATA.readline()
         m0 = re.match(r'\A\S*',d).group()
         m2 = int(re.findall(r'\d*\S$',d)[0])
         SAD = [int(m2)]
-        SADs = []
+        obsSADs = []
         
         for d in DATA:
             m1 = re.match(r'\A\S*',d).group()
@@ -1212,32 +1485,17 @@ def dataset_NS_combos(NS_combos,dataset):
                 if len(SAD) == S and sum(SAD) == N:
                     SAD.sort()
                     SAD.reverse()
-                    SADs.append(SAD)
+                    obsSADs.append(SAD)
                     
                 SAD = []
                 abundance = int(re.findall(r'\d*\S$',d)[0])
                 if abundance > 0:SAD.append(abundance)
         
         DATA.close()
-        _vector = Evars_sample(SADs) # This can also be berger_parker_sample(), Heips_sample(), mode_sample(), etc.
+        _vector = Evars_sample(obsSADs) # This can also be berger_parker_sample(), Heips_sample(), mode_sample(), etc.
         D = get_kdens(_vector)
         plt.xlim(0.0, 1.0)
-        plt.plot(D[0],D[1],color='0.6',lw=3) #  blue is '#1E90FF', red '#FF34B3'
-        
-        rand_macros = []
-        _numparts = 0
-        while _numparts < 500:
-            macro = list(Partitions(N).random_element())
-            if len(macro) == S:
-                rand_macros.append(macro)
-                _numparts+=1
-                            
-        SADs = [list(x) for x in set(tuple(x) for x in rand_macros)]
-        print N,S,len(SADs)
-        Evars = Evars_sample(SADs)
-        D = get_kdens(Evars)
-        plt.xlim(0.0, 1.0)
-        plt.plot(D[0],D[1],color='k',lw=3) # 
+        plt.plot(D[0],D[1],color='0.5',lw=3)
         
         maxd = 0.0
         xspot = 0
@@ -1247,12 +1505,42 @@ def dataset_NS_combos(NS_combos,dataset):
                 maxd = D[1][d]
                 xspot = D[0][d]
             d += 1
+        if maxd <= 4.5:
+            plt.setp(ax, yticks=[0,1,2,3,4,5])
+                    
+        rand_macros = []
+        _numparts = 0
+        while _numparts < 500:
+            macro = list(Partitions(N).random_element())
+            if len(macro) == S:
+                rand_macros.append(macro)
+                _numparts+=1
+                            
+        SADs = [list(x) for x in set(tuple(x) for x in rand_macros)]
+        print N,S,len(obsSADs)
+        Evars = Evars_sample(SADs)
+        D = get_kdens(Evars)
+        plt.xlim(0.0, 1.0)
+        plt.plot(D[0],D[1],color='k',lw=3) # 
+        plt.text(0.09,Ys[0],'N='+str(N)+'\n'+'S='+str(S)+'\n'+'$n$='+str(len(obsSADs)),fontsize=8)
+        Ys.pop(0)
+        maxd = 0.0
+        xspot = 0
+        d = 0
+        while d < len(D[1]):
+            if D[1][d] > maxd:
+                maxd = D[1][d]
+                xspot = D[0][d]
+            d += 1
         plt.axvline(x=xspot,ymin=0,ymax=10,color='black',ls='--',lw=1.5) # plot a vertical line at the mode
-        plt.tick_params(axis='both', which='major', labelsize=7)
+        plt.tick_params(axis='both', which='major', labelsize=8)
         plt.setp(ax, xticks=[0.2,0.4,0.6,0.8])
+        
         plt.subplots_adjust(wspace=0.35, hspace=0.35)
         i+=1  
-    plt.savefig('FIA_feasible_vs_obs.png', dpi=400, pad_inches=0)     
+    plt.text(-4.4,15,'pdf',style='italic',fontsize=12,rotation='90')
+    plt.text(-1.9,-2.3,'Evenness, '+'$E_{var}$',fontsize=12)
+    plt.savefig('FIA_feasible_vs_obs.png', dpi=600, pad_inches=0)     
     
 
 
@@ -1300,49 +1588,6 @@ def compare(size,datasets):
 
 
 
-def pairwise_r2_obs_feasible(datasets):
-    
-    i = 1
-    fig = plt.figure()
-    for dataset in datasets:
-        ax = fig.add_subplot(3,3,i)
-        P_errs = []
-        SADs = get_SADs(dataset)
-        ct = 0
-
-        for SAD in SADs:
-            N = sum(SAD)
-            S = len(SAD)
-            PATH = '/home/kenlocey/combined1/' + str(N) + '-' + str(S) + '.txt'
-            if path.exists(PATH) and path.isfile(PATH) and access(PATH, R_OK):
-                data = open(PATH,'r')
-                macros = set(data.readlines())
-                if len(macros) >= 400:
-                    if len(macros) >= 500:
-                        macros = random.sample(macros,500)
-                    r2s = []
-                    ct+=1
-                    for macro in macros:
-                        macro = eval(macro)
-                        r2 = macroecotools.obs_pred_rsquare(np.log10(SAD),np.log10(macro)) # r-squared for the 1:1 line (obs vs. exp) 
-                        r2s.append(r2)
-                        
-                    density = gaussian_kde(r2s)
-                    n = len(r2s)
-                    xs = np.linspace(0.0,1.0,n)
-                    density.covariance_factor = lambda : .5
-                    density._compute_covariance()
-                    D = [xs,density(xs)]
-                    plt.xlim(0.0, 1.0)
-                    plt.setp(ax, xticks=[0.2,0.4,0.6,0.8,1.0])
-                    plt.plot(D[0],D[1],lw=0.5,alpha=0.3)
-                    data.close()
-                else:data.close()
-        
-        plt.subplots_adjust(wspace=0.3, hspace=0.3)
-        print ct,'usable sites in',dataset
-        i+=1
-    plt.savefig('Figure8.png', dpi=1200, pad_inches=0)
 
 ####################################################################################################################
 ######   Two functions written by Justin Kitzes. One generates uniform random macrostates from the feasible set#####
@@ -1488,5 +1733,3 @@ def get_random_macrostates_data(NS_combo):
         	            
     rand_macros = [list(x) for x in set(tuple(x) for x in rand_macros)]
     return rand_macros    
-
-    
