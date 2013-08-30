@@ -2,7 +2,9 @@ feasiblesets
 ============
 
 Research code for replicating the analyses in Locey and White (2013), for understanding distributions of wealth
-and abundance in the context of all possible distributions.
+and abundance in the context of all possible distributions. Efficient code for generating random samples of SAD feasible
+sets (all SAD shapes having the same total abundance and species richness) can be found here:
+https://github.com/klocey/partitions 
 
 Files and Folders
 -----------------
